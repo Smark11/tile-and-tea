@@ -9,7 +9,7 @@ A line `## 🛑 CHECKPOINT` means: stop the loop, so the human can try the app b
 
 ## M0: Foundation
 
-- [ ] **M0.1 Clean template + tooling.** Remove Expo template demo screens/components that won't be used. Add Jest (jest-expo preset), a `test` and `typecheck` script, strict TS. *Done when:* `npm test`, `npx tsc --noEmit`, `npx expo lint` all pass.
+- [x] **M0.1 Clean template + tooling.** Remove Expo template demo screens/components that won't be used. Add Jest (jest-expo preset), a `test` and `typecheck` script, strict TS. *Done when:* `npm test`, `npx tsc --noEmit`, `npx expo lint` all pass.
 - [ ] **M0.1b Screenshot harness.** `npm run screenshots`: start Expo web, use Playwright to capture every route at iPhone 15 size (393×852, light + dark) into `app/screenshots/` (gitignored). Lets the design reviewer see the UI. *Done when:* running it produces PNGs of the current screens.
 - [ ] **M0.2 Design system.** `src/theme/` with the Jade Parlor palette (light + dark), spacing, radii, shadows, typography (load serif + sans via expo-google-fonts). Themed `Text`, `Button`, `Card`, `Screen` components. *Done when:* a hidden `/dev/styleguide` route shows every token and component.
 - [ ] **M0.3 Tile model.** `src/game/tiles.ts`: types for all 152 tiles, full-set generator, shuffle (seedable RNG), human/a11y names. *Done when:* unit tests prove counts (152, 8 jokers, 8 flowers, etc.) and seeded shuffles are deterministic.
