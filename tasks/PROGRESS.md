@@ -13,3 +13,9 @@ Each loop iteration appends a short entry here.
 - Jest uses the `jest-expo` preset (set in the package.json `jest` key) with `@testing-library/react-native` v14, where `render` is async (`await render(...)`). Scripts: `npm test`, `npm run typecheck`. `expo lint` auto-installed ESLint 9 + eslint-config-expo (flat `eslint.config.js`).
 - TS 6 defaults `types` to empty, so tsconfig sets `"types": ["jest"]`. Add more entries there (e.g. `node`) if globals go missing.
 - **Never put test files under `src/app/`**, because Expo Router treats them as routes. Put tests in `src/__tests__/` or next to modules in `src/game/` and `src/components/`.
+
+## M0.1b Screenshot harness
+- `npm run screenshots` (`scripts/screenshots.mjs`) starts `expo start --web` on port 8099 (override with `SCREENSHOT_PORT`; it refuses a busy port), waits for Metro's `/status`, then uses Playwright Chromium to capture each route at 393×852 @3x (1179×2556, the real iPhone 15) in light and dark mode into `app/screenshots/<route>-<scheme>.png`. It clears old PNGs first and stops the dev server's process group afterward.
+- Routes are found automatically from `src/app/` (`scripts/routes.js`, unit-tested in `scripts/__tests__/`). It skips layouts, `+` files, API routes, native-only variants, and dynamic `[param]` routes. Groups are stripped. Set `SCREENSHOT_ROUTES=/,/dev/styleguide` to capture a subset. Dynamic routes need a future harness option if we want them.
+- Page JS errors and console errors make the run exit 1, so a broken screen can't pass silently. There's a 1s settle delay for entrance springs.
+- One-time setup on a new machine: `npx playwright install chromium` (the script prints this hint if the browser is missing). Playwright is a devDependency.
