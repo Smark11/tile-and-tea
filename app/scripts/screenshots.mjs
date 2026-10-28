@@ -23,6 +23,7 @@ const SCHEMES = /** @type {const} */ (['light', 'dark']);
 const SERVER_TIMEOUT_MS = 120_000;
 const FIRST_LOAD_TIMEOUT_MS = 180_000; // first request triggers the web bundle build
 const SETTLE_MS = 1_000; // let entrance springs finish before capturing
+const MAX_SCROLL_FRAMES = 10; // extra below-the-fold captures per long screen
 
 function log(msg) {
   console.log(`[screenshots] ${msg}`);
@@ -100,9 +101,30 @@ async function capture(browser, route, scheme, timeout) {
     });
     await page.evaluate(() => document.fonts.ready);
     await page.waitForTimeout(SETTLE_MS);
-    const file = path.join(OUT_DIR, `${screenshotName(route)}-${scheme}.png`);
+    const base = `${screenshotName(route)}-${scheme}`;
+    const file = path.join(OUT_DIR, `${base}.png`);
     await page.screenshot({ path: file });
     log(`✓ ${path.relative(APP_ROOT, file)}`);
+
+    // RN-web ScrollViews scroll inside a div, so fullPage can't see below the
+    // fold. Page through the tallest scroller one viewport at a time instead.
+    for (let frame = 2; frame <= MAX_SCROLL_FRAMES; frame++) {
+      const moved = await page.evaluate(() => {
+        const scrollers = [...document.querySelectorAll('div')].filter(
+          (el) => el.scrollHeight > el.clientHeight + 1 && getComputedStyle(el).overflowY !== 'visible',
+        );
+        const el = scrollers.sort((a, b) => b.scrollHeight - a.scrollHeight)[0];
+        if (!el) return false;
+        const before = el.scrollTop;
+        el.scrollTop = before + el.clientHeight * 0.9;
+        return el.scrollTop > before;
+      });
+      if (!moved) break;
+      await page.waitForTimeout(250);
+      const frameFile = path.join(OUT_DIR, `${base}-${frame}.png`);
+      await page.screenshot({ path: frameFile });
+      log(`✓ ${path.relative(APP_ROOT, frameFile)}`);
+    }
   } finally {
     await context.close();
   }

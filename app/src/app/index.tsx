@@ -1,26 +1,13 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Screen } from '@/components/Screen';
+import { Text } from '@/components/Text';
 
-// Temporary home screen. M0.2 (design system) and M0.6 (navigation shell) replace it.
+// Temporary home screen. M0.6 (navigation shell) replaces it.
 export default function Home() {
   return (
-    <View style={styles.container}>
-      <Text accessibilityRole="header" style={styles.title}>
+    <Screen scroll={false} tone="felt" contentStyle={{ justifyContent: 'center' }}>
+      <Text variant="title1" color="onFelt" align="center">
         Mah Jongg Coach
       </Text>
-    </View>
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#0F3D33',
-  },
-  title: {
-    color: '#F7F1E3',
-    fontSize: 28,
-    fontWeight: '600',
-  },
-});
