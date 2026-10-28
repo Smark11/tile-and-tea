@@ -1,7 +1,5 @@
-import * as Haptics from 'expo-haptics';
 import { memo, useCallback, useEffect } from 'react';
 import {
-  Platform,
   Pressable,
   StyleSheet,
   View,
@@ -23,6 +21,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
+import { hapticLift, hapticTick } from '@/components/haptics';
 import { tileA11yLabel, type TileKind } from '@/game/tiles';
 import { minTouchTarget, tileInks } from '@/theme';
 
@@ -155,12 +154,12 @@ export const Tile = memo(function Tile({
   }, [reduceMotion, press]);
   const handlePressOut = useCallback(() => press.set(withSpring(0, PRESS_SPRING)), [press]);
   const handlePress = useCallback(() => {
-    if (Platform.OS !== 'web') void Haptics.selectionAsync();
+    hapticTick();
     onPress?.();
   }, [onPress]);
   // A long press (e.g. "explain this tile") lands a little heavier than a tap.
   const handleLongPress = useCallback(() => {
-    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    hapticLift();
     onLongPress?.();
   }, [onLongPress]);
 

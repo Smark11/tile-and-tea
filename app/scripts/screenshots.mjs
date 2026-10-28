@@ -24,6 +24,9 @@ const SERVER_TIMEOUT_MS = 120_000;
 const FIRST_LOAD_TIMEOUT_MS = 180_000; // first request triggers the web bundle build
 const SETTLE_MS = 1_000; // let entrance springs finish before capturing
 const MAX_SCROLL_FRAMES = 10; // extra below-the-fold captures per long screen
+// Must match PREFERENCES_STORAGE_KEY and the persist version in src/state/preferences.ts.
+const PREFERENCES_KEY = 'mjc.preferences';
+const WELCOME_ROUTE = '/welcome';
 
 function log(msg) {
   console.log(`[screenshots] ${msg}`);
@@ -87,6 +90,14 @@ async function capture(browser, route, scheme, timeout) {
     hasTouch: true,
     colorScheme: scheme,
   });
+  // A fresh browser hasn't seen the welcome tour, so every route would redirect
+  // to /welcome. Mark it seen everywhere except the welcome route itself.
+  if (route !== WELCOME_ROUTE) {
+    await context.addInitScript(
+      ([key, value]) => window.localStorage.setItem(key, value),
+      [PREFERENCES_KEY, JSON.stringify({ state: { onboarded: true }, version: 1 })],
+    );
+  }
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', (err) => errors.push(err.message));

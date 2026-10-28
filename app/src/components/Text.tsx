@@ -13,6 +13,7 @@ export type TextColor = Extract<
   | 'onFelt'
   | 'onFeltMuted'
   | 'onDanger'
+  | 'felt'
 >;
 
 export type TextProps = RNTextProps & {

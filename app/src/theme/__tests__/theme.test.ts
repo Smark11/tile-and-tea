@@ -41,6 +41,8 @@ const textPairs: [keyof ThemeColors, keyof ThemeColors][] = [
   ['onDanger', 'danger'],
   ['onFelt', 'felt'],
   ['onFeltMuted', 'felt'],
+  // The ivory button on felt: felt-colored label on a tile-ivory fill.
+  ['felt', 'tileFace'],
 ];
 
 describe.each<ColorScheme>(['light', 'dark'])('%s colors', (scheme) => {

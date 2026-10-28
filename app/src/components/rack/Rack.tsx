@@ -1,7 +1,5 @@
-import * as Haptics from 'expo-haptics';
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
-  Platform,
   StyleSheet,
   View,
   type AccessibilityActionEvent,
@@ -19,6 +17,7 @@ import Animated, {
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { Button } from '@/components/Button';
+import { hapticLift, hapticTick } from '@/components/haptics';
 import { Tile } from '@/components/tile/Tile';
 import { isRackSorted, moveTile, sortRack } from '@/game/rack';
 import { type Tile as RackTileModel } from '@/game/tiles';
@@ -63,14 +62,6 @@ const MOVE_ACTIONS = {
   left: { name: 'moveLeft', label: 'Move left' },
   right: { name: 'moveRight', label: 'Move right' },
 } as const;
-
-function hapticLift() {
-  if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-}
-
-function hapticTick() {
-  if (Platform.OS !== 'web') void Haptics.selectionAsync();
-}
 
 type RackTileProps = {
   tile: RackTileModel;

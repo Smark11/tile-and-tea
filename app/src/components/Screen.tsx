@@ -11,18 +11,26 @@ export type ScreenProps = {
   /** `felt` paints the whole screen as the jade game table. */
   tone?: 'background' | 'felt';
   contentStyle?: StyleProp<ViewStyle>;
+  /** Pad for the bottom safe area (default true). Tab screens sit above the tab bar, which already does. */
+  insetBottom?: boolean;
 };
 
 /**
  * Root container for every screen: themed background, safe-area padding, and
  * a centered column that stays readable on tablets and web.
  */
-export function Screen({ children, scroll = true, tone = 'background', contentStyle }: ScreenProps) {
+export function Screen({
+  children,
+  scroll = true,
+  tone = 'background',
+  contentStyle,
+  insetBottom = true,
+}: ScreenProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const padding = {
     paddingTop: insets.top + spacing.xl,
-    paddingBottom: insets.bottom + spacing.xxl,
+    paddingBottom: (insetBottom ? insets.bottom : 0) + spacing.xxl,
     paddingLeft: insets.left + spacing.xl,
     paddingRight: insets.right + spacing.xl,
   };

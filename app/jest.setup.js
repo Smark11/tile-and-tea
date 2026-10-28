@@ -1,6 +1,11 @@
 // Safe-area insets have no native provider under Jest; use the library's mock.
 jest.mock('react-native-safe-area-context', () => require('react-native-safe-area-context/jest/mock').default);
 
+// In-memory AsyncStorage, so persisted stores work under Jest.
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
+
 // Worklets has no native runtime under Jest; hopping back to the JS thread
 // is just a direct call.
 jest.mock('react-native-worklets', () => ({
@@ -37,6 +42,20 @@ jest.mock('react-native-reanimated', () => {
     ...Animated,
     useSharedValue: (initial) => require('react').useState(() => sharedValue(initial))[0],
     useAnimatedStyle: (updater) => updater(),
+    // The returned function stands in for the worklet handler, so a test's
+    // fireEvent.scroll feeds onScroll like a native scroll would.
+    useAnimatedScrollHandler: (handlers) => (event) => handlers.onScroll?.(event.nativeEvent),
+    interpolate: (x, input, output) => {
+      if (x <= input[0]) return output[0];
+      for (let i = 1; i < input.length; i++) {
+        if (x <= input[i]) {
+          const t = (x - input[i - 1]) / (input[i] - input[i - 1]);
+          return output[i - 1] + t * (output[i] - output[i - 1]);
+        }
+      }
+      return output[output.length - 1];
+    },
+    Extrapolation: { CLAMP: 'clamp', EXTEND: 'extend', IDENTITY: 'identity' },
     // Gesture Handler asks this to tell shared-value config apart from plain values.
     isSharedValue: (value) =>
       value !== null && typeof value === 'object' && typeof value.get === 'function' && 'value' in value,

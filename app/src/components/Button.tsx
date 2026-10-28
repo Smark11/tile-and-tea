@@ -10,7 +10,11 @@ import { minTouchTarget, radii, spacing, useTheme, type Theme } from '@/theme';
 
 import { Text, type TextColor } from './Text';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'quiet';
+/**
+ * `ivory` and `quietOnFelt` are for jade felt, where jade text wouldn't read:
+ * `ivory` is the main action, finished like a tile face in both schemes.
+ */
+export type ButtonVariant = 'primary' | 'secondary' | 'quiet' | 'ivory' | 'quietOnFelt';
 
 export type ButtonProps = Omit<PressableProps, 'children' | 'style'> & {
   title: string;
@@ -46,6 +50,19 @@ function variantStyles(variant: ButtonVariant, { colors, shadows }: Theme, press
       return {
         container: { backgroundColor: pressed ? colors.surfaceSunken : 'transparent' },
         label: 'primaryText' as TextColor,
+      };
+    case 'ivory':
+      return {
+        container: {
+          backgroundColor: pressed ? colors.tileEdge : colors.tileFace,
+          boxShadow: `inset 0px -2px 0px ${colors.tileEdge}, ${shadows.medium}`,
+        },
+        label: 'felt' as TextColor,
+      };
+    case 'quietOnFelt':
+      return {
+        container: { backgroundColor: pressed ? 'rgba(247, 241, 227, 0.10)' : 'transparent' },
+        label: 'onFelt' as TextColor,
       };
   }
 }

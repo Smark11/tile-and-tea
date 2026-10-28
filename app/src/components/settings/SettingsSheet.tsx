@@ -1,0 +1,140 @@
+import Constants from 'expo-constants';
+import { router } from 'expo-router';
+import { Children, Fragment, type ReactNode } from 'react';
+import { ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { Button } from '@/components/Button';
+import { Card } from '@/components/Card';
+import { Text } from '@/components/Text';
+import { usePreferences } from '@/state/preferences';
+import { maxContentWidth, minTouchTarget, spacing, useTheme } from '@/theme';
+
+/** A labelled card of rows, with hairlines between them. */
+function Group({ heading, children }: { heading: string; children: ReactNode }) {
+  const { colors } = useTheme();
+  return (
+    <View style={styles.group}>
+      <Text variant="eyebrow" accessibilityRole="header">
+        {heading}
+      </Text>
+      <Card elevation="low" style={styles.groupCard}>
+        {Children.toArray(children).map((child, i) => (
+          <Fragment key={i}>
+            {i > 0 && <View style={[styles.divider, { backgroundColor: colors.border }]} />}
+            {child}
+          </Fragment>
+        ))}
+      </Card>
+    </View>
+  );
+}
+
+function Row({ title, detail, trailing }: { title: string; detail: string; trailing?: ReactNode }) {
+  return (
+    <View style={styles.row}>
+      <View style={styles.rowText}>
+        <Text variant="headline">{title}</Text>
+        <Text variant="caption">{detail}</Text>
+      </View>
+      {trailing}
+    </View>
+  );
+}
+
+/** A planned setting: listed so players know it's coming, but not a control. */
+function UpcomingRow({ title, detail }: { title: string; detail: string }) {
+  return (
+    <View accessible accessibilityLabel={`${title}, coming soon. ${detail}`}>
+      <Row title={title} detail={detail} />
+    </View>
+  );
+}
+
+/**
+ * The settings sheet, opened from the button in each tab's header. Only
+ * settings that work are switches; planned ones say "Coming soon".
+ */
+export function SettingsSheet() {
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const haptics = usePreferences((s) => s.haptics);
+  const setHaptics = usePreferences((s) => s.setHaptics);
+  const replayOnboarding = usePreferences((s) => s.replayOnboarding);
+  const version = Constants.expoConfig?.version;
+
+  return (
+    <ScrollView
+      style={{ backgroundColor: colors.background }}
+      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xxl }]}
+    >
+      <View style={styles.column}>
+        <View style={styles.header}>
+          <Text variant="title1" style={styles.title}>
+            Settings
+          </Text>
+          <Button title="Done" variant="quiet" onPress={() => router.back()} />
+        </View>
+
+        <Group heading="Feel">
+          <Row
+            title="Haptics"
+            detail="A gentle tick when you touch and move tiles."
+            trailing={
+              <Switch
+                accessibilityLabel="Haptics"
+                accessibilityHint="A gentle tick when you touch and move tiles"
+                value={haptics}
+                onValueChange={setHaptics}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor={colors.surface}
+                ios_backgroundColor={colors.border}
+              />
+            }
+          />
+        </Group>
+
+        <Group heading="Coming soon">
+          <UpcomingRow title="Tile sounds" detail="Soft clacks as tiles land. Off unless you turn them on." />
+          <UpcomingRow title="Large tiles" detail="Bigger tiles everywhere, for easier reading." />
+          <UpcomingRow
+            title="Mah Jongg Coach Plus"
+            detail="Every lesson, unlimited drills, and the post-game coach."
+          />
+        </Group>
+
+        <Group heading="Help">
+          <View style={styles.action}>
+            <Text variant="caption">New here, or showing a friend? Take the three-page tour again.</Text>
+            <Button title="Replay the welcome tour" variant="secondary" block onPress={replayOnboarding} />
+          </View>
+        </Group>
+
+        {version && (
+          <Text variant="caption" align="center">
+            Mah Jongg Coach {version}
+          </Text>
+        )}
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  content: { paddingHorizontal: spacing.xl, paddingTop: spacing.xl },
+  column: { width: '100%', maxWidth: maxContentWidth, alignSelf: 'center', gap: spacing.xl },
+  header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  title: { flex: 1 },
+  group: { gap: spacing.sm },
+  groupCard: { paddingVertical: spacing.xs, paddingHorizontal: spacing.lg, gap: 0 },
+  divider: { height: StyleSheet.hairlineWidth * 2 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    minHeight: minTouchTarget + spacing.md,
+    paddingVertical: spacing.md,
+  },
+  rowText: { flex: 1, gap: spacing.xxs },
+  action: { gap: spacing.md, paddingVertical: spacing.lg },
+});
