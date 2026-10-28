@@ -139,4 +139,12 @@ describe('Styleguide', () => {
     }
     expect(screen.getAllByRole('button').length).toBeGreaterThanOrEqual(4);
   });
+
+  it('shows every tile face, including all eight flowers', async () => {
+    await render(<Styleguide />);
+    expect(screen.getByRole('button', { name: 'Nine of Characters' })).toBeOnTheScreen();
+    expect(screen.getByRole('image', { name: 'Green Dragon' })).toBeOnTheScreen();
+    expect(screen.getAllByRole('image', { name: 'Flower' })).toHaveLength(8);
+    expect(screen.getAllByRole('image', { name: 'Joker' }).length).toBeGreaterThanOrEqual(1);
+  });
 });

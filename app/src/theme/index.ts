@@ -4,6 +4,7 @@ import { useColorScheme } from './useColorScheme';
 
 export * from './colors';
 export * from './palette';
+export * from './tileInks';
 export * from './tokens';
 
 export type Theme = {

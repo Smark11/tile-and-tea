@@ -2,6 +2,7 @@ import { colors, type ColorScheme, type ThemeColors } from '../colors';
 import { contrastRatio, parseHex, relativeLuminance } from '../contrast';
 import { fontAssets } from '../fonts';
 import { getTheme } from '../index';
+import { tileInks } from '../tileInks';
 import { fontFamilies, minTouchTarget, typography } from '../tokens';
 
 describe('contrast helpers', () => {
@@ -50,6 +51,14 @@ describe.each<ColorScheme>(['light', 'dark'])('%s colors', (scheme) => {
   it('keeps the brand tile colors in both modes', () => {
     expect(colors[scheme].tileFace).toBe('#F7F1E3');
     expect(colors[scheme].tileEdge).toBe('#D9CBA8');
+  });
+});
+
+describe('tile inks', () => {
+  it.each(['green', 'red', 'blue', 'ink'] as const)('%s reads at AA on every face shade', (inkName) => {
+    for (const face of [tileInks.faceLight, tileInks.face, tileInks.faceShade]) {
+      expect(contrastRatio(tileInks[inkName], face)).toBeGreaterThanOrEqual(4.5);
+    }
   });
 });
 

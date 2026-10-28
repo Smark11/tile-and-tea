@@ -28,9 +28,14 @@ jest.mock('react-native-reanimated', () => {
     ...Animated,
     useSharedValue: (initial) => require('react').useState(() => sharedValue(initial))[0],
     useAnimatedStyle: (updater) => updater(),
-    useReducedMotion: () => false,
-    withSpring: (toValue) => toValue,
+    // jest.fn so tests can flip Reduce Motion and spy on which animations run.
+    useReducedMotion: jest.fn(() => false),
+    withSpring: jest.fn((toValue) => toValue),
     withTiming: (toValue) => toValue,
+    withSequence: (...steps) => steps[steps.length - 1],
+    withRepeat: jest.fn((animation) => animation),
+    cancelAnimation: jest.fn(),
+    Easing: { inOut: (fn) => fn, sin: (t) => t },
     ReduceMotion: { System: 'system', Always: 'always', Never: 'never' },
   };
 });

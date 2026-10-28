@@ -1,10 +1,12 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
+import { Tile, type TileSize } from '@/components/tile/Tile';
+import { ALL_KINDS, RANKS, SUITS, tileKey, type Suit, type TileKind } from '@/game/tiles';
 import {
   palette,
   radii,
@@ -72,6 +74,116 @@ function Swatch({ name, value, detail }: { name: string; value: string; detail?:
   );
 }
 
+const suitTitles: Record<Suit, string> = { bam: 'Bams', crak: 'Craks', dot: 'Dots' };
+const honors = ALL_KINDS.filter((k) => k.type === 'wind' || k.type === 'dragon');
+const sizes: TileSize[] = ['S', 'M', 'L'];
+const sample: TileKind = { type: 'suited', suit: 'dot', rank: 5 };
+const noop = () => {};
+
+function TileRow({ children }: { children: ReactNode }) {
+  return <View style={styles.tileRow}>{children}</View>;
+}
+
+function TileGroup({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <View style={styles.tileGroup}>
+      <Text variant="eyebrow" color="onFeltMuted">
+        {title}
+      </Text>
+      {children}
+    </View>
+  );
+}
+
+function TileStateDemo({ label, ...state }: { label: string; selected?: boolean; hint?: boolean; disabled?: boolean }) {
+  return (
+    <View style={styles.stateItem}>
+      <Tile kind={sample} size="L" onPress={noop} {...state} />
+      <Text variant="caption">{label}</Text>
+    </View>
+  );
+}
+
+function TileGallery() {
+  const [picked, setPicked] = useState<ReadonlySet<string>>(() => new Set(['crak-5']));
+  const toggle = (key: string) =>
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(key)) next.add(key);
+      return next;
+    });
+
+  return (
+    <>
+      <Card tone="felt" elevation="high" style={styles.felt}>
+        {SUITS.map((suit) => (
+          <TileGroup key={suit} title={suitTitles[suit]}>
+            {[RANKS.slice(0, 5), RANKS.slice(5)].map((ranks, i) => (
+              <TileRow key={i}>
+                {ranks.map((rank) => {
+                  const key = `${suit}-${rank}`;
+                  return (
+                    <Tile
+                      key={key}
+                      kind={{ type: 'suited', suit, rank }}
+                      selected={picked.has(key)}
+                      onPress={() => toggle(key)}
+                    />
+                  );
+                })}
+              </TileRow>
+            ))}
+          </TileGroup>
+        ))}
+        <TileGroup title="Winds & Dragons">
+          {[honors.slice(0, 4), honors.slice(4)].map((row, i) => (
+            <TileRow key={i}>
+              {row.map((kind) => (
+                <Tile key={tileKey(kind)} kind={kind} />
+              ))}
+            </TileRow>
+          ))}
+        </TileGroup>
+        <TileGroup title="Flowers & Joker">
+          {[
+            [0, 1, 2, 3],
+            [4, 5, 6, 7],
+          ].map((copies, i) => (
+            <TileRow key={i}>
+              {copies.map((copy) => (
+                <Tile key={copy} kind={{ type: 'flower' }} copy={copy} />
+              ))}
+              {i === 1 && <Tile kind={{ type: 'joker' }} />}
+            </TileRow>
+          ))}
+        </TileGroup>
+        <Text variant="caption" color="onFeltMuted" align="center">
+          Tap a suit tile to select it.
+        </Text>
+      </Card>
+
+      <Card elevation="low" style={styles.tileStates}>
+        <Text variant="headline">Sizes</Text>
+        <View style={styles.sizeRow}>
+          {sizes.map((size) => (
+            <View key={size} style={styles.stateItem}>
+              <Tile kind={{ type: 'joker' }} size={size} />
+              <Text variant="caption">{size}</Text>
+            </View>
+          ))}
+        </View>
+        <Text variant="headline">States</Text>
+        <View style={styles.stateRow}>
+          <TileStateDemo label="Resting" />
+          <TileStateDemo label="Selected" selected />
+          <TileStateDemo label="Hint" hint />
+          <TileStateDemo label="Disabled" disabled />
+        </View>
+      </Card>
+    </>
+  );
+}
+
 export function Styleguide() {
   const { colors, scheme, shadows } = useTheme();
   const semantic = Object.entries(colors) as [keyof ThemeColors, string][];
@@ -85,6 +197,10 @@ export function Styleguide() {
           A sunlit game room: ivory tiles on jade felt, touched with gold.
         </Text>
       </View>
+
+      <Section title="Tiles">
+        <TileGallery />
+      </Section>
 
       <Section title="Brand palette">
         <View style={styles.grid}>
@@ -253,4 +369,11 @@ const styles = StyleSheet.create({
   elevationRow: { flexDirection: 'row', gap: spacing.md },
   elevationCard: { flex: 1, paddingHorizontal: spacing.sm, alignItems: 'center' },
   buttons: { gap: spacing.md },
+  felt: { gap: spacing.xl, paddingHorizontal: spacing.lg },
+  tileGroup: { gap: spacing.md },
+  tileRow: { flexDirection: 'row', justifyContent: 'center', gap: spacing.sm },
+  tileStates: { gap: spacing.lg },
+  sizeRow: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.xl },
+  stateRow: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: spacing.md },
+  stateItem: { alignItems: 'center', gap: spacing.sm },
 });
