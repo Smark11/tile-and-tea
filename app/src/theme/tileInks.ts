@@ -29,6 +29,13 @@ export const tileInks = {
   selectRing: palette.gold,
   /** Glow around a hinted tile (paired with a star badge). */
   hintGlow: '#4FBF96',
+  /** The rack is a lacquered jade object too, so it doesn't change with the scheme. */
+  rackTray: '#0A2A23',
+  rackTrayInlay: 'rgba(201, 162, 75, 0.45)',
+  /** The ledge each tier of tiles stands on. */
+  rackLedge: '#16594A',
+  rackLedgeLight: '#2A8A70',
+  rackLedgeShade: '#0B3A30',
 } as const;
 
 export type TileInk = keyof typeof tileInks;

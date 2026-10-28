@@ -1,6 +1,15 @@
 import * as Haptics from 'expo-haptics';
 import { memo, useCallback, useEffect } from 'react';
-import { Platform, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+  type AccessibilityActionEvent,
+  type AccessibilityActionInfo,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -27,8 +36,8 @@ export type TileSize = 'S' | 'M' | 'L';
  */
 export const TILE_WIDTHS: Record<TileSize, number> = { S: 30, M: 44, L: 64 };
 
-export function tileDimensions(size: TileSize) {
-  const width = TILE_WIDTHS[size];
+export function tileDimensions(size: TileSize | number) {
+  const width = typeof size === 'number' ? size : TILE_WIDTHS[size];
   return { width, height: Math.round((width * TILE_VIEWBOX.height) / TILE_VIEWBOX.width) };
 }
 
@@ -37,6 +46,8 @@ export type TileProps = {
   /** Which physical copy; varies the art for the eight flowers. */
   copy?: number;
   size?: TileSize;
+  /** Exact width in points, overriding `size`; the rack fits tiles to the screen. */
+  width?: number;
   /** Raised with a gold ring, as when picked to pass or discard. */
   selected?: boolean;
   /** Suggested by the coach: soft jade glow plus a star badge. */
@@ -45,6 +56,9 @@ export type TileProps = {
   disabled?: boolean;
   onPress?: () => void;
   onLongPress?: () => void;
+  /** Extra screen-reader actions, e.g. "Move left" on a rack tile. */
+  accessibilityActions?: readonly AccessibilityActionInfo[];
+  onAccessibilityAction?: (event: AccessibilityActionEvent) => void;
   style?: StyleProp<ViewStyle>;
   testID?: string;
 };
@@ -77,16 +91,19 @@ export const Tile = memo(function Tile({
   kind,
   copy = 0,
   size = 'M',
+  width: widthOverride,
   selected = false,
   hint = false,
   disabled = false,
   onPress,
   onLongPress,
+  accessibilityActions,
+  onAccessibilityAction,
   style,
   testID,
 }: TileProps) {
   const reduceMotion = useReducedMotion();
-  const { width, height } = tileDimensions(size);
+  const { width, height } = tileDimensions(widthOverride ?? size);
   const radius = width * 0.14;
   const interactive = !!(onPress || onLongPress);
 
@@ -154,6 +171,8 @@ export const Tile = memo(function Tile({
       accessibilityRole={interactive ? 'button' : 'image'}
       accessibilityLabel={tileAccessibilityLabel(kind, hint)}
       accessibilityState={interactive ? { selected, disabled } : undefined}
+      accessibilityActions={accessibilityActions}
+      onAccessibilityAction={onAccessibilityAction}
       // Pressable folds any non-null `disabled` into accessibilityState, so a
       // display-only tile must leave it unset or VoiceOver reads it as
       // "dimmed". With no handlers, presses already do nothing.

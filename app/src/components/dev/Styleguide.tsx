@@ -1,12 +1,23 @@
-import { useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { Rack } from '@/components/rack/Rack';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { Tile, type TileSize } from '@/components/tile/Tile';
-import { ALL_KINDS, RANKS, SUITS, tileKey, type Suit, type TileKind } from '@/game/tiles';
+import { createRng } from '@/game/rng';
+import {
+  ALL_KINDS,
+  createShuffledTileSet,
+  RANKS,
+  SUITS,
+  tileKey,
+  type Suit,
+  type Tile as RackTileModel,
+  type TileKind,
+} from '@/game/tiles';
 import {
   palette,
   radii,
@@ -184,6 +195,39 @@ function TileGallery() {
   );
 }
 
+// A seeded deal, so the rack looks the same in every screenshot.
+const DEALT_HAND = createShuffledTileSet(createRng('styleguide-rack')).slice(0, 14);
+
+function RackDemo() {
+  const [tiles, setTiles] = useState<readonly RackTileModel[]>(DEALT_HAND);
+  const [picked, setPicked] = useState<ReadonlySet<number>>(() => new Set([DEALT_HAND[4].id]));
+  const hints = useMemo(() => new Set([DEALT_HAND[9].id]), []);
+  const toggle = useCallback(
+    (tile: RackTileModel) =>
+      setPicked((prev) => {
+        const next = new Set(prev);
+        if (!next.delete(tile.id)) next.add(tile.id);
+        return next;
+      }),
+    [],
+  );
+
+  return (
+    <View style={styles.rackDemo}>
+      <Rack
+        tiles={tiles}
+        onReorder={setTiles}
+        onToggleSelect={toggle}
+        selectedIds={picked}
+        hintIds={hints}
+      />
+      <Text variant="caption" color="textMuted" align="center">
+        Tap to select. Slide a tile sideways to move it.
+      </Text>
+    </View>
+  );
+}
+
 export function Styleguide() {
   const { colors, scheme, shadows } = useTheme();
   const semantic = Object.entries(colors) as [keyof ThemeColors, string][];
@@ -200,6 +244,10 @@ export function Styleguide() {
 
       <Section title="Tiles">
         <TileGallery />
+      </Section>
+
+      <Section title="Rack">
+        <RackDemo />
       </Section>
 
       <Section title="Brand palette">
@@ -370,6 +418,7 @@ const styles = StyleSheet.create({
   elevationCard: { flex: 1, paddingHorizontal: spacing.sm, alignItems: 'center' },
   buttons: { gap: spacing.md },
   felt: { gap: spacing.xl, paddingHorizontal: spacing.lg },
+  rackDemo: { gap: spacing.md },
   tileGroup: { gap: spacing.md },
   tileRow: { flexDirection: 'row', justifyContent: 'center', gap: spacing.sm },
   tileStates: { gap: spacing.lg },
