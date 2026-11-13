@@ -1,14 +1,15 @@
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { Children, Fragment, type ReactNode } from 'react';
-import { ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Text } from '@/components/Text';
+import { CALL_WINDOWS, type CallWindow } from '@/game/table/calls';
 import { usePreferences } from '@/state/preferences';
-import { maxContentWidth, minTouchTarget, spacing, useTheme } from '@/theme';
+import { maxContentWidth, minTouchTarget, radii, spacing, useTheme } from '@/theme';
 
 /** A labelled card of rows, with hairlines between them. */
 function Group({ heading, children }: { heading: string; children: ReactNode }) {
@@ -51,6 +52,46 @@ function UpcomingRow({ title, detail }: { title: string; detail: string }) {
   );
 }
 
+const WINDOW_TITLES: Record<CallWindow, string> = { off: 'Off', relaxed: '12 s', standard: '7 s', brisk: '4 s' };
+const WINDOW_LABELS: Record<CallWindow, string> = {
+  off: 'Off: no time limit',
+  relaxed: 'Relaxed: 12 seconds',
+  standard: 'Standard: 7 seconds',
+  brisk: 'Brisk: 4 seconds',
+};
+
+/** A row of pills, one per call window: a radio group. */
+function CallWindowPicker({ value, onChange }: { value: CallWindow; onChange: (w: CallWindow) => void }) {
+  const { colors } = useTheme();
+  return (
+    <View style={styles.pills} accessibilityRole="radiogroup" accessibilityLabel="Time to call a discard">
+      {CALL_WINDOWS.map((w) => {
+        const on = w === value;
+        return (
+          <Pressable
+            key={w}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: on }}
+            accessibilityLabel={WINDOW_LABELS[w]}
+            onPress={() => onChange(w)}
+            style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
+              styles.pill,
+              { borderColor: on ? colors.primary : colors.border },
+              on && { backgroundColor: colors.primary },
+              !on && (pressed || hovered) && { backgroundColor: colors.surfaceSunken },
+            ]}
+            testID={`settings-call-window-${w}`}
+          >
+            <Text variant="button" color={on ? 'onPrimary' : 'text'}>
+              {WINDOW_TITLES[w]}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 // The privacy page takes the sheet's place, so on iOS it doesn't open
 // underneath the sheet, and its Back returns to the tab.
 const openPrivacy = () => router.replace('/privacy');
@@ -65,6 +106,8 @@ export function SettingsSheet() {
   const haptics = usePreferences((s) => s.haptics);
   const setHaptics = usePreferences((s) => s.setHaptics);
   const replayOnboarding = usePreferences((s) => s.replayOnboarding);
+  const callWindow = usePreferences((s) => s.callWindow);
+  const setCallWindow = usePreferences((s) => s.setCallWindow);
   const version = Constants.expoConfig?.version;
 
   return (
@@ -96,6 +139,19 @@ export function SettingsSheet() {
               />
             }
           />
+        </Group>
+
+        <Group heading="At the table">
+          <View style={styles.action}>
+            <View style={styles.rowText}>
+              <Text variant="headline">Time to call a discard</Text>
+              <Text variant="caption">
+                How long the table waits before letting a tile you could call go by. Turn it off to take all the time you
+                need.
+              </Text>
+            </View>
+            <CallWindowPicker value={callWindow} onChange={setCallWindow} />
+          </View>
         </Group>
 
         <Group heading="Coming soon">
@@ -145,4 +201,14 @@ const styles = StyleSheet.create({
   },
   rowText: { flex: 1, gap: spacing.xxs },
   action: { gap: spacing.md, paddingVertical: spacing.lg },
+  pills: { flexDirection: 'row', gap: spacing.sm },
+  pill: {
+    flex: 1,
+    minHeight: minTouchTarget,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radii.pill,
+    borderWidth: 1.5,
+    borderCurve: 'continuous',
+  },
 });

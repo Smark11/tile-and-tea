@@ -11,6 +11,9 @@ export type OnboardingExit = 'finished' | 'skipped';
 /** Where a finished game ended. */
 export type GameResult = 'won' | 'lost' | 'wall_game' | 'dead_hand' | 'abandoned';
 
+/** What the player called a discard for. */
+export type CallClaim = 'pung' | 'kong' | 'quint' | 'sextet' | 'mah_jongg';
+
 /** The screen a Share button sat on. */
 export type ShareSurface = 'lesson' | 'drill_streak' | 'game' | 'puzzle';
 
@@ -26,6 +29,10 @@ export type AnalyticsEvents = {
   /** `opponents` is the bot level, e.g. 'beginner'. */
   game_started: { opponents: string };
   game_finished: { opponents: string; result: GameResult };
+  /** The player called a discard at the table. `claim` is 'pung' … 'sextet' or 'mah_jongg'; `won` is whether the tile went to them. */
+  tile_called: { claim: CallClaim; won: boolean };
+  /** The player traded a rack tile for an exposed Joker. `own` is true for a Joker in their own exposure. */
+  joker_swapped: { own: boolean };
   share_clicked: { surface: ShareSurface };
 };
 
@@ -40,6 +47,8 @@ export const ANALYTICS_EVENT_NAMES = [
   'skill_level_reached',
   'game_started',
   'game_finished',
+  'tile_called',
+  'joker_swapped',
   'share_clicked',
 ] as const satisfies readonly AnalyticsEventName[];
 

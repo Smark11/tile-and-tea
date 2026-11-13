@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 
 import { track } from '@/analytics';
-import { gameReducer, newGame, type GameAction, type GameState, type Seat } from '@/game/engine';
+import type { CallClaim } from '@/analytics/events';
+import { awaiting, gameReducer, newGame, type Claim, type GameAction, type GameState, type Seat } from '@/game/engine';
 import { DEFAULT_LEVEL, type BotLevel } from '@/game/bots';
-import { arrangeRack, autoAction, outcomeFor } from '@/game/table';
+import { arrangeRack, autoAction, canCall, EXPOSURE_NAMES, lostCallNote, outcomeFor, SEAT_NAMES } from '@/game/table';
 import type { Tile } from '@/game/tiles';
 
 /** How long the table pauses before each automatic move, so play reads like people taking turns. */
@@ -21,6 +22,17 @@ const PACE_MS: Record<GameAction['type'], number> = {
   closeCalls: 0,
 };
 
+/** The call window counting down on the discard on offer. */
+export type CallTimer = {
+  /** Changes with each discard, so the countdown starts over. */
+  key: string;
+  ms: number;
+  /** False on a frozen demo table: the bar shows but doesn't drain. */
+  running: boolean;
+  /** The player paused it for this tile: nothing is let go until they choose. */
+  paused: boolean;
+};
+
 export type TableGameOptions = {
   seed: number;
   you: Seat;
@@ -32,13 +44,23 @@ export type TableGameOptions = {
   autoplay?: boolean;
   /** How well the three computer players play. */
   level?: BotLevel;
+  /** How long the player has to call a discard before it's let go; null waits as long as they like. */
+  callWindowMs?: number | null;
 };
 
 /**
  * One game at the table: the engine state, the bots’ moves on a gentle
  * clock, and the player’s own rack order and selection.
  */
-export function useTableGame({ seed, you, initial, pace = 1, autoplay = true, level = DEFAULT_LEVEL }: TableGameOptions) {
+export function useTableGame({
+  seed,
+  you,
+  initial,
+  pace = 1,
+  autoplay = true,
+  level = DEFAULT_LEVEL,
+  callWindowMs = null,
+}: TableGameOptions) {
   const [state, dispatch] = useReducer(gameReducer, initial ?? seed, (start) =>
     typeof start === 'number' ? newGame(start) : start,
   );
@@ -105,10 +127,67 @@ export function useTableGame({ seed, you, initial, pace = 1, autoplay = true, le
       return [...current, tile.id].slice(-limit);
     });
   }, []);
-  const act = useCallback((action: GameAction) => {
-    setSelected([]);
-    dispatch(action);
-  }, []);
+  // The call window: while the table waits on the player to call or let a
+  // discard go, a timer lets it go for them (unless the window is off, or
+  // they paused it). One window per discard.
+  // A frozen demo table shows the timer standing still, so screenshots can see it.
+  const waitingOnCall = useMemo(
+    () => state.phase.type === 'calls' && awaiting(state).includes(you) && canCall(state, you),
+    [state, you],
+  );
+  // Keyed on the discard itself: a called tile never reaches the discard pile
+  // and draws nothing from the wall, so counts alone could repeat.
+  const callKey = waitingOnCall && state.phase.type === 'calls' ? String(state.phase.tile.id) : null;
+  const [held, setHeld] = useState<string | null>(null);
+  const timed = callKey !== null && callWindowMs !== null && held !== callKey;
+  useEffect(() => {
+    if (!timed || !autoplay || callWindowMs === null) return;
+    const timer = setTimeout(() => dispatch({ type: 'pass', seat: you }), callWindowMs);
+    return () => clearTimeout(timer);
+  }, [timed, autoplay, callKey, callWindowMs, you]);
+  const hold = useCallback(() => setHeld(callKey), [callKey]);
+  // A paused window stays on show (saying so), so the player can see the pause took.
+  const callTimer: CallTimer | null =
+    callKey !== null && callWindowMs !== null
+      ? { key: callKey, ms: callWindowMs, running: autoplay && timed, paused: !timed }
+      : null;
 
-  return { state, tiles, freshIds, selected, toggle, reorder, act, abandon };
+  // How the player's own calls turned out: analytics, and a word when another claim took the tile.
+  // The player's claim is remembered from the moment they call, since the
+  // same action can also settle the calls (when everyone else has answered).
+  const [note, setNote] = useState<string | null>(null);
+  const pending = useRef<{ claim: Claim; at: GameState } | null>(null);
+  useEffect(() => {
+    const call = pending.current;
+    if (!call || state.phase.type === 'calls') return;
+    pending.current = null;
+    const { claim, at } = call;
+    const won =
+      state.players[you].exposures.length > at.players[you].exposures.length ||
+      (state.phase.type === 'ended' && state.phase.result.type === 'mahJongg' && state.phase.result.winner === you);
+    if (autoplay) {
+      const kind: CallClaim =
+        claim.type === 'mahJongg' ? 'mah_jongg' : (EXPOSURE_NAMES[claim.tiles.length + 1] as CallClaim);
+      track('tile_called', { claim: kind, won });
+    }
+    setNote(lostCallNote(at, claim, state, you, (s) => SEAT_NAMES[s]));
+  }, [state, you, autoplay]);
+
+  // The latest state, read by `act` so its identity stays put between engine steps.
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+  const act = useCallback(
+    (action: GameAction) => {
+      setSelected([]);
+      setNote(null);
+      if (action.type === 'call') pending.current = { claim: action.claim, at: stateRef.current };
+      if (action.type === 'jokerSwap' && autoplay) track('joker_swapped', { own: action.owner === action.seat });
+      dispatch(action);
+    },
+    [autoplay],
+  );
+
+  return { state, tiles, freshIds, selected, toggle, reorder, act, abandon, callTimer, hold, note };
 }

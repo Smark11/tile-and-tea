@@ -4,7 +4,7 @@
 import { CURRENT_CARD, type Hand, type PracticeCard } from '../../card';
 import { tileName, type Suit, type TileKind } from '../../tiles';
 
-export const GROUP_NAMES = ['', 'single', 'pair', 'pung', 'kong', 'quint'];
+export const GROUP_NAMES = ['', 'single', 'pair', 'pung', 'kong', 'quint', 'sextet'];
 export const SUIT_PLURAL: Record<Suit, string> = { bam: 'Bams', crak: 'Craks', dot: 'Dots' };
 export const COUNT_WORDS = ['no', 'one', 'two', 'three', 'four', 'five'];
 

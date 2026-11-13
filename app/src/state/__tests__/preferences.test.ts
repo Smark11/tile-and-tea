@@ -19,8 +19,19 @@ beforeEach(async () => {
 });
 
 describe('preferences', () => {
-  it('starts with the welcome tour unseen, haptics on, and Club opponents', () => {
-    expect(defaultPreferences).toEqual({ onboarded: false, haptics: true, opponents: 'club' });
+  it('starts with the welcome tour unseen, haptics on, Club opponents and a relaxed call window', () => {
+    expect(defaultPreferences).toEqual({ onboarded: false, haptics: true, opponents: 'club', callWindow: 'relaxed' });
+  });
+
+  it('keeps the call window, and falls back to relaxed for an old or bad save', async () => {
+    usePreferences.getState().setCallWindow('off');
+    await waitFor(async () => expect((await saved()).state.callWindow).toBe('off'));
+    for (const state of [{ onboarded: true, haptics: true }, { onboarded: true, haptics: true, callWindow: 'forever' }]) {
+      usePreferences.setState({ callWindow: 'relaxed' });
+      await AsyncStorage.setItem(PREFERENCES_STORAGE_KEY, JSON.stringify({ state, version: 1 }));
+      await usePreferences.persist.rehydrate();
+      expect(usePreferences.getState().callWindow).toBe('relaxed');
+    }
   });
 
   it('finishes and replays onboarding', () => {
@@ -35,7 +46,10 @@ describe('preferences', () => {
     usePreferences.getState().setHaptics(false);
     usePreferences.getState().setOpponents('shark');
     await waitFor(async () =>
-      expect(await saved()).toEqual({ state: { onboarded: true, haptics: false, opponents: 'shark' }, version: 1 }),
+      expect(await saved()).toEqual({
+        state: { onboarded: true, haptics: false, opponents: 'shark', callWindow: 'relaxed' },
+        version: 1,
+      }),
     );
   });
 

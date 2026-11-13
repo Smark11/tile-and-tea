@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { DEFAULT_LEVEL, isBotLevel, type BotLevel } from '@/game/bots';
+import { DEFAULT_CALL_WINDOW, isCallWindow, type CallWindow } from '@/game/table/calls';
 
 /** AsyncStorage key. The screenshot harness seeds it too (scripts/screenshots.mjs). */
 export const PREFERENCES_STORAGE_KEY = 'mjc.preferences';
@@ -15,6 +16,8 @@ export type Preferences = {
   haptics: boolean;
   /** The computer players the Play tab seats, kept for the next game. */
   opponents: BotLevel;
+  /** How long the table waits for the player to call a discard. */
+  callWindow: CallWindow;
 };
 
 type PreferencesStore = Preferences & {
@@ -23,9 +26,15 @@ type PreferencesStore = Preferences & {
   replayOnboarding: () => void;
   setHaptics: (on: boolean) => void;
   setOpponents: (level: BotLevel) => void;
+  setCallWindow: (window: CallWindow) => void;
 };
 
-export const defaultPreferences: Preferences = { onboarded: false, haptics: true, opponents: DEFAULT_LEVEL };
+export const defaultPreferences: Preferences = {
+  onboarded: false,
+  haptics: true,
+  opponents: DEFAULT_LEVEL,
+  callWindow: DEFAULT_CALL_WINDOW,
+};
 
 // Hydration from storage is async. Track when it settles, success or failure,
 // so the app never sits on the splash screen because storage threw.
@@ -45,16 +54,27 @@ export const usePreferences = create<PreferencesStore>()(
       replayOnboarding: () => set({ onboarded: false }),
       setHaptics: (haptics) => set({ haptics }),
       setOpponents: (opponents) => set({ opponents }),
+      setCallWindow: (callWindow) => set({ callWindow }),
     }),
     {
       name: PREFERENCES_STORAGE_KEY,
       version: 1,
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: ({ onboarded, haptics, opponents }): Preferences => ({ onboarded, haptics, opponents }),
-      // A save from before opponent levels (or a bad value) keeps the default level.
+      partialize: ({ onboarded, haptics, opponents, callWindow }): Preferences => ({
+        onboarded,
+        haptics,
+        opponents,
+        callWindow,
+      }),
+      // A save from before opponent levels or call windows (or a bad value) keeps the defaults.
       merge: (saved, current) => {
         const s = (saved ?? {}) as Partial<Preferences>;
-        return { ...current, ...s, opponents: isBotLevel(s.opponents) ? s.opponents : current.opponents };
+        return {
+          ...current,
+          ...s,
+          opponents: isBotLevel(s.opponents) ? s.opponents : current.opponents,
+          callWindow: isCallWindow(s.callWindow) ? s.callWindow : current.callWindow,
+        };
       },
       onRehydrateStorage: () => settleHydration,
     },

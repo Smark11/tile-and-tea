@@ -400,15 +400,16 @@ export function TableFelt({
   const nextStack = nextWall === undefined ? -1 : layout[nextWall].findIndex((h) => h > 0);
 
   // With a height to fill (the full-screen table), the center takes it all,
-  // from 2:5 on a short screen up to 13:10 on a tall phone, so the felt and
-  // rack fill the screen with no dead space below. Embedded, it's 4:5. Either
+  // from 2:7 on a short screen (a wide desktop table with the call panel
+  // open) up to 13:10 on a tall phone, so the felt and rack fill the screen
+  // with no dead space below. Embedded, it's 4:5. Either
   // way it grows if the discards outgrow it at the smallest tile.
   // The felt's chrome (seats, padding) is its measured height minus the center's.
   const ideal = Math.round(width * 0.8);
   const chrome = slot.height > 0 && feltHeight > slot.height ? feltHeight - slot.height : 0;
   const target =
     maxHeight !== undefined && chrome > 0
-      ? Math.max(Math.round(width * 0.4), Math.min(Math.round(width * 1.3), maxHeight - chrome))
+      ? Math.max(Math.round(width * 0.28), Math.min(Math.round(width * 1.3), maxHeight - chrome))
       : ideal;
   const inner = width - 2 * PILE_PADDING;
   const count = state.discards.length + (state.phase.type === 'calls' ? 1 : 0);

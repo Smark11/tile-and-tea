@@ -48,6 +48,8 @@ const STATES = {
     { name: 'play-yours', query: 'demo=yours', tap: '[data-testid^="table-rack-tile-"]:not([aria-label*="Joker"])', waitFor: 'table-discard' },
     { name: 'play-open', query: 'demo=open' },
     { name: 'play-theirs', query: 'demo=theirs' },
+    { name: 'play-call', query: 'demo=call', waitFor: 'table-call-actions' },
+    { name: 'play-swap', query: 'demo=swap', waitFor: 'table-swaps' },
   ],
 };
 

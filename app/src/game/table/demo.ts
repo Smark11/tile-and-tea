@@ -4,8 +4,9 @@
 // as a player who chose to expose the Joker would have made it.
 // table.test.ts pins what these produce.
 
-import { newGame, type GameState, type PlayerState } from '../engine';
+import { EAST, newGame, type GameState, type PlayerState } from '../engine';
 import { playOut } from './autoplay';
+import { canCall, swapOptions } from './calls';
 
 export const DEMO_TABLE_SEED = 5;
 
@@ -54,10 +55,25 @@ export function theirTurnTable(seed: number = DEMO_TABLE_SEED): GameState {
   );
 }
 
+/** A deal where the player gets both to call a discard and to swap for a Joker (seed 9, pinned in calls.test.ts). */
+export const CALL_DEMO_SEED = 9;
+
+/** Another player's discard the player could call for a pung, kong or quint. */
+export function callableDiscardTable(seed: number = CALL_DEMO_SEED): GameState {
+  return playOut(newGame(seed), (g) => g.discards.length >= 10 && canCall(g, EAST));
+}
+
+/** The player's turn, with an exposed Joker they could swap a rack tile for. */
+export function jokerSwapTable(seed: number = CALL_DEMO_SEED): GameState {
+  return playOut(newGame(seed), (g) => swapOptions(g, EAST).length > 0);
+}
+
 export const DEMO_TABLES = {
   yours: midGameTable,
   open: openDiscardTable,
   theirs: theirTurnTable,
+  call: callableDiscardTable,
+  swap: jokerSwapTable,
 } as const;
 
 export type DemoTable = keyof typeof DEMO_TABLES;

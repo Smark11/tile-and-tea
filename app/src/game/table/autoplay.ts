@@ -6,6 +6,7 @@ import { botAction, DEFAULT_LEVEL, type BotLevel } from '../bots';
 import { CURRENT_CARD, type PracticeCard } from '../card';
 import { awaiting, step } from '../engine/game';
 import type { GameAction, GameState, Seat } from '../engine/types';
+import { canCall } from './calls';
 
 /** Whether `seat` can declare Mah Jongg now, on their own turn. */
 export function canDeclareMahJongg(state: GameState, seat: Seat, card: PracticeCard = CURRENT_CARD): boolean {
@@ -19,8 +20,8 @@ export function canCallMahJongg(state: GameState, seat: Seat, card: PracticeCard
 
 /**
  * The next move the table makes by itself: a bot's move, or the human
- * player's routine ones (drawing, and passing on a discard they can't win
- * with). Null when the table is waiting on the human, or the game is over.
+ * player's routine ones (drawing, and passing on a discard they can't call
+ * for Mah Jongg or an exposure). Null when the table is waiting on the human, or the game is over.
  * With `you` null, bots play every seat.
  */
 export function autoAction(
@@ -33,8 +34,8 @@ export function autoAction(
   for (const seat of awaiting(state)) {
     if (seat !== you) return botAction(state, seat, level, card);
     if (phase.type === 'turn' && phase.step === 'draw') return { type: 'draw', seat };
-    // Calling for an exposure arrives with M4.3; until then only Mah Jongg waits for the player.
-    if (phase.type === 'calls' && !canCallMahJongg(state, seat, card)) return { type: 'pass', seat };
+    // A discard the player can't use goes by without asking them.
+    if (phase.type === 'calls' && !canCall(state, seat, card)) return { type: 'pass', seat };
   }
   return null;
 }

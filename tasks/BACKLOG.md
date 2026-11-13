@@ -52,7 +52,7 @@ A line `## 🛑 CHECKPOINT` means: stop the loop, so the human can try the app b
 
 - [x] **M4.1 Table UI.** Four-seat table, walls, discards, exposures, turn indicator; animated draws/discards.
 - [x] **M4.2 Bots.** Beginner / Club / Shark using the advisor.
-- [ ] **M4.3 Calling & joker swaps UX.** Clear, forgiving, with a call window timer (adjustable/off for beginners).
+- [x] **M4.3 Calling & joker swaps UX.** Clear, forgiving, with a call window timer (adjustable/off for beginners).
 - [ ] **M4.4 Save/resume games.**
 
 ## 🛑 CHECKPOINT: play 3 full games on device.

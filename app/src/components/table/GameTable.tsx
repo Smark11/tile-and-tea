@@ -11,12 +11,23 @@ import { Text } from '@/components/Text';
 import { Tile } from '@/components/tile/Tile';
 import { DEFAULT_LEVEL, type BotLevel } from '@/game/bots';
 import { PASS_SIZE, type GameAction, type GameState, type Seat } from '@/game/engine';
-import { canDeclareMahJongg, exposureLabel, resultSummary, SEAT_NAMES, tablePrompt } from '@/game/table';
+import {
+  CALL_WINDOW_MS,
+  callChoices,
+  canDeclareMahJongg,
+  exposureLabel,
+  resultSummary,
+  SEAT_NAMES,
+  swapOptions,
+  tablePrompt,
+} from '@/game/table';
 import { tileName, type Tile as TileModel } from '@/game/tiles';
-import { feltTones, maxContentWidth, maxTableWidth, palette, radii, spacing, useTheme } from '@/theme';
+import { usePreferences } from '@/state/preferences';
+import { feltTones, maxContentWidth, maxTableWidth, palette, paletteAlpha, radii, spacing, useTheme } from '@/theme';
 
+import { CallActions, SwapActions } from './CallPanel';
 import { activeSeat, TableFelt, WindDisc } from './TableFelt';
-import { useTableGame } from './useTableGame';
+import { useTableGame, type CallTimer } from './useTableGame';
 
 const EMPTY: ReadonlySet<number> = new Set();
 
@@ -66,8 +77,9 @@ export function GameTable({
 }: GameTableProps) {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-  const game = useTableGame({ seed, you, initial, autoplay, pace, level });
-  const { state, tiles, freshIds, selected, toggle, reorder, act, abandon } = game;
+  const callWindow = usePreferences((s) => s.callWindow);
+  const game = useTableGame({ seed, you, initial, autoplay, pace, level, callWindowMs: CALL_WINDOW_MS[callWindow] });
+  const { state, tiles, freshIds, selected, toggle, reorder, act, abandon, callTimer, hold, note } = game;
   const prompt = tablePrompt(state, you);
   const rule = selectionRule(state, you, prompt.yourMove);
   const player = state.players[you];
@@ -137,7 +149,22 @@ export function GameTable({
                 <Text color="onFeltMuted">{prompt.detail}</Text>
               </View>
             </View>
-            <Actions state={state} you={you} selected={selected} tiles={tiles} act={act} />
+            {note && (
+              <Animated.View entering={FadeIn.duration(300)} style={styles.note} testID="table-call-note">
+                <Text variant="caption" color="onFelt" accessibilityLiveRegion="polite">
+                  {note}
+                </Text>
+              </Animated.View>
+            )}
+            <Actions
+              state={state}
+              you={you}
+              selected={selected}
+              tiles={tiles}
+              act={act}
+              callTimer={callTimer}
+              onHold={hold}
+            />
           </View>
         )}
 
@@ -210,10 +237,12 @@ type ActionsProps = {
   selected: readonly number[];
   tiles: readonly TileModel[];
   act: (action: GameAction) => void;
+  callTimer: CallTimer | null;
+  onHold: () => void;
 };
 
 /** The buttons for the player's move, if the table is waiting on them. */
-function Actions({ state, you, selected, tiles, act }: ActionsProps) {
+function Actions({ state, you, selected, tiles, act, callTimer, onHold }: ActionsProps) {
   const { phase } = state;
   const waiting = phase.type !== 'ended' && tablePrompt(state, you).yourMove;
   if (!waiting) return null;
@@ -281,39 +310,49 @@ function Actions({ state, you, selected, tiles, act }: ActionsProps) {
       // only appears once there's one to throw.
       const pick = tiles.find((t) => t.id === selected[0]);
       const mahJongg = canDeclareMahJongg(state, you);
-      if (!pick && !mahJongg) return null;
-      return row(
-        <>
-          {mahJongg && (
-            <Button
-              title="Declare Mah Jongg"
-              variant="ivory"
-              testID="table-mahjongg"
-              onPress={() => act({ type: 'declareMahJongg', seat })}
-            />
-          )}
-          {pick && (
-            <Button
-              title={`Discard ${tileName(pick.kind)}`}
-              variant="ivory"
-              testID="table-discard"
-              onPress={() => act({ type: 'discard', seat, tile: pick.id })}
-            />
-          )}
-        </>,
+      const swaps = swapOptions(state, you);
+      if (!pick && !mahJongg && swaps.length === 0) return null;
+      return (
+        <View style={styles.stack}>
+          <SwapActions
+            options={swaps}
+            you={you}
+            onSwap={(o) => act({ type: 'jokerSwap', seat, tile: o.tile.id, owner: o.owner, exposure: o.exposure })}
+          />
+          {(mahJongg || pick) &&
+            row(
+              <>
+                {mahJongg && (
+                  <Button
+                    title="Declare Mah Jongg"
+                    variant="ivory"
+                    testID="table-mahjongg"
+                    onPress={() => act({ type: 'declareMahJongg', seat })}
+                  />
+                )}
+                {pick && (
+                  <Button
+                    title={`Discard ${tileName(pick.kind)}`}
+                    variant="ivory"
+                    testID="table-discard"
+                    onPress={() => act({ type: 'discard', seat, tile: pick.id })}
+                  />
+                )}
+              </>,
+            )}
+        </View>
       );
     }
     case 'calls':
-      return row(
-        <>
-          <Button
-            title="Call Mah Jongg"
-            variant="ivory"
-            testID="table-call-mahjongg"
-            onPress={() => act({ type: 'call', seat, claim: { type: 'mahJongg' } })}
-          />
-          <Button title="Let it go" variant="quietOnFelt" onPress={() => act({ type: 'pass', seat })} />
-        </>,
+      return (
+        <CallActions
+          choices={callChoices(state, you)}
+          timer={callTimer}
+          onHold={onHold}
+          onMahJongg={() => act({ type: 'call', seat, claim: { type: 'mahJongg' } })}
+          onExpose={(option) => act({ type: 'call', seat, claim: { type: 'expose', tiles: option.tiles } })}
+          onPass={() => act({ type: 'pass', seat })}
+        />
       );
   }
 }
@@ -403,6 +442,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   place: { gap: spacing.md },
+  stack: { gap: spacing.sm },
+  note: {
+    borderLeftWidth: 2,
+    borderLeftColor: palette.gold,
+    paddingLeft: spacing.sm,
+    paddingVertical: spacing.xxs,
+    backgroundColor: paletteAlpha('gold', 0.08),
+  },
   yourExposures: { gap: spacing.xs },
   exposureRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   group: { flexDirection: 'row', gap: 2 },

@@ -22,7 +22,7 @@ function leaveTable() {
 
 /**
  * The /game screen: deals a game (or the `?seed=` one) and seats the player
- * as East, against bots of the `?level=` given or the one chosen on the Play tab. `?demo=yours|open|theirs` freezes a mid-game table instead, for
+ * as East, against bots of the `?level=` given or the one chosen on the Play tab. `?demo=yours|open|theirs|call|swap` freezes a mid-game table instead, for
  * the screenshots; "Deal again" from there starts a real game.
  */
 export function GameScreen() {

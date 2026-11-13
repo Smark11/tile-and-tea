@@ -3,7 +3,17 @@
 // table component stays a thin view.
 
 import { CURRENT_CARD, type PracticeCard } from '../card';
-import { countWord, groupName, handById, handLabel, list, tileCount, tilesWord } from '../drills/content/words';
+import {
+  countWord,
+  GROUP_NAMES,
+  groupName,
+  handById,
+  handLabel,
+  list,
+  singular,
+  tileCount,
+  tilesWord,
+} from '../drills/content/words';
 import { awaiting } from '../engine/game';
 import {
   acrossFrom,
@@ -19,7 +29,8 @@ import {
   type Seat,
 } from '../engine/types';
 import type { Tile } from '../tiles';
-import { canCallMahJongg, canDeclareMahJongg } from './autoplay';
+import { canDeclareMahJongg } from './autoplay';
+import { callChoices, swapOptions } from './calls';
 
 /** Where a seat sits as the player looks at the table: they're always at the bottom. */
 export type SeatPosition = 'bottom' | 'right' | 'top' | 'left';
@@ -128,7 +139,9 @@ export function tablePrompt(state: GameState, you: Seat, card: PracticeCard = CU
       };
     }
     case 'turn': {
+      const called = phase.source === 'call' ? lastCall(state, phase.seat, phase.calledFrom, you) : null;
       if (phase.seat !== you) {
+        if (called) return { title: `${SEAT_NAMES[phase.seat]} called`, detail: `${called}. Now they discard.`, yourMove: false };
         const doing = phase.step === 'draw' ? 'is drawing from the wall' : 'is choosing a discard';
         return { title: `${SEAT_NAMES[phase.seat]}’s turn`, detail: `${name(phase.seat)}, ${doing}.`, yourMove: false };
       }
@@ -136,25 +149,49 @@ export function tablePrompt(state: GameState, you: Seat, card: PracticeCard = CU
       if (canDeclareMahJongg(state, you, card)) {
         return { title: 'Mah Jongg!', detail: 'Your tiles make a hand on the card. Declare it to win.', yourMove: true };
       }
+      const swaps = swapOptions(state, you, card).length > 0 ? ' You can also swap for a Joker first.' : '';
       return {
-        title: 'Your turn',
+        title: called ? 'Your call' : 'Your turn',
         detail:
           phase.source === 'deal'
-            ? 'East starts the play: choose one of your 14 tiles to discard.'
-            : 'Choose a tile to discard.',
+            ? `East starts the play: choose one of your 14 tiles to discard.${swaps}`
+            : called
+              ? `${called}. Now choose a tile to discard.${swaps}`
+              : `Choose a tile to discard.${swaps}`,
         yourMove: true,
       };
     }
     case 'calls': {
       const thrown = `${SEAT_NAMES[phase.discarder]} threw ${tileCount(phase.tile.kind, 1)}`;
-      if (phase.discarder !== you && canCallMahJongg(state, you, card)) {
+      const choices = callChoices(state, you, card);
+      if (choices.mahJongg) {
         return { title: 'Mah Jongg!', detail: `${thrown}, and it completes your hand. Call it to win.`, yourMove: true };
+      }
+      if (choices.exposures.length > 0) {
+        return {
+          title: thrown,
+          detail: 'Call it for an exposure, or let it go.',
+          yourMove: true,
+        };
       }
       return { title: thrown, detail: 'Waiting to see if anyone calls it.', yourMove: false };
     }
     case 'ended':
       return { title: 'Game over', detail: resultSummary(phase.result, you, card).detail, yourMove: false };
   }
+}
+
+/**
+ * The call that started this turn, as a sentence: "South called your 5 Dot
+ * for a pung", "You called West’s North for a kong". Null if the caller has
+ * no exposure from that seat (never, for a turn that began with a call).
+ */
+function lastCall(state: GameState, caller: Seat, from: Seat | null, you: Seat): string | null {
+  const group = state.players[caller].exposures.at(-1);
+  if (!group || from === null || group.calledFrom !== from) return null;
+  const who = caller === you ? 'You' : SEAT_NAMES[caller];
+  const whose = from === you ? 'your' : `${SEAT_NAMES[from]}’s`;
+  return `${who} called ${whose} ${singular(group.kind)} for a ${GROUP_NAMES[group.tiles.length]}`;
 }
 
 /** "pung of Red Dragons", "kong of 3 Bams, one a Joker", "quint of Norths, two of them Jokers". */
