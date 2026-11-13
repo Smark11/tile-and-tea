@@ -35,7 +35,7 @@ A line `## 🛑 CHECKPOINT` means: stop the loop, so the human can try the app b
 
 - [x] **M2.1 2027 Practice Card.** An original set of ~40 hands across the generic categories (2027 year hands, 2468, Like Numbers, Addition, Quints, Consecutive Run, 13579, Winds & Dragons, 369, Singles & Pairs), with a hand notation DSL and values (concealed/exposed). Card data is versioned by year (`practice-card-2027.ts`) so a new card can ship each year. Write every hand from scratch. Never consult, adapt, or "project from" any NMJL card. Give the in-app card view its own Jade Parlor design, not the NMJL card's look.
 - [x] **M2.2 Hand matcher.** Given 14 tiles (+ exposures), decide whether it's a valid Mah Jongg for any card hand, joker-aware. Exhaustive tests.
-- [ ] **M2.3 Hand distance.** For a partial rack, compute tiles-away for every card hand (joker-aware). Fast enough for real-time (<16ms for one rack on mid-range phone; benchmark test).
+- [x] **M2.3 Hand distance.** For a partial rack, compute tiles-away for every card hand (joker-aware). Fast enough for real-time (<16ms for one rack on mid-range phone; benchmark test).
 - [ ] **M2.4 Game state machine.** Deal → Charleston (both + courtesy) → play/call/expose/joker-swap → Mah Jongg / wall game / dead hand. Pure TS reducer, fully tested.
 
 ## 🛑 CHECKPOINT: review the practice card and rules accuracy with a real player.

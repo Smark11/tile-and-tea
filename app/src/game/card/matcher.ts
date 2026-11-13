@@ -16,7 +16,7 @@
 import { copiesOf, tileKey, type TileKind } from '../tiles';
 import { HAND_TILE_COUNT } from './notation';
 import type { Hand, PracticeCard } from './types';
-import { handVariants, MIN_JOKER_GROUP, type HandVariant } from './variants';
+import { MIN_JOKER_GROUP, variantsOf, type HandVariant } from './variants';
 
 /** A group the player called and laid face up: e.g. two 4 Craks and a Joker. */
 export type Exposure = readonly TileKind[];
@@ -54,7 +54,7 @@ export type HandMatch = {
 
 /** Why a declaration isn't a set of tiles that could be on the table at all. */
 export type DeclarationProblem =
-  /** Not exactly 14 tiles, counting exposures. */
+  /** Not exactly 14 tiles, counting exposures (for a hand still being built, more than 14). */
   | 'tile-count'
   /** More of one tile than a 152-tile set holds (4 of each, 8 Flowers, 8 Jokers). */
   | 'too-many-copies'
@@ -69,9 +69,21 @@ const isJoker = (kind: TileKind) => kind.type === 'joker';
 
 /** Null if the declaration could be on the table; otherwise what's wrong with it. */
 export function declarationProblem(declaration: Declaration): DeclarationProblem | null {
+  return tilesProblem(declaration, (n) => n === HAND_TILE_COUNT);
+}
+
+/**
+ * Like `declarationProblem`, for a hand still being built: up to 14 tiles,
+ * counting exposures, rather than exactly 14.
+ */
+export function holdingProblem(holding: Declaration): DeclarationProblem | null {
+  return tilesProblem(holding, (n) => n <= HAND_TILE_COUNT);
+}
+
+function tilesProblem(declaration: Declaration, countOk: (n: number) => boolean): DeclarationProblem | null {
   const exposures = declaration.exposures ?? [];
   const all = [...declaration.concealed, ...exposures.flat()];
-  if (all.length !== HAND_TILE_COUNT) return 'tile-count';
+  if (!countOk(all.length)) return 'tile-count';
 
   const copies = new Map<string, number>();
   for (const kind of all) {
@@ -168,17 +180,6 @@ function fitVariant(variant: HandVariant, t: Tally): MatchedUnit[] | null {
     spare.set(keys[i], left - naturals);
     return { kind: u.kind, count: u.count, naturals, jokers: u.count - naturals, exposure: null };
   });
-}
-
-const variantCache = new WeakMap<Hand, readonly HandVariant[]>();
-
-function variantsOf(hand: Hand): readonly HandVariant[] {
-  let variants = variantCache.get(hand);
-  if (!variants) {
-    variants = handVariants(hand.groups);
-    variantCache.set(hand, variants);
-  }
-  return variants;
 }
 
 function matchTally(hand: Hand, t: Tally): HandMatch | null {

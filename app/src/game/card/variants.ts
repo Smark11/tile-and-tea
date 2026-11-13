@@ -4,7 +4,7 @@
 
 import { copiesOf, SUIT_DRAGON, SUITS, tileKey, type Rank, type Suit, type TileKind } from '../tiles';
 import { maxOffsetOf, suitVarsOf } from './notation';
-import type { HandGroup, SuitVar, TileSpec } from './types';
+import type { Hand, HandGroup, SuitVar, TileSpec } from './types';
 
 /** A unit with its choices made: e.g. a pung of 4 Craks. */
 export type ConcreteUnit = { readonly kind: TileKind; readonly count: number };
@@ -93,6 +93,18 @@ export function jokersNeeded(units: readonly ConcreteUnit[]): number | null {
     jokers += Math.max(0, all - copies);
   }
   return jokers;
+}
+
+const variantCache = new WeakMap<Hand, readonly HandVariant[]>();
+
+/** `handVariants` for a card hand, worked out once and then reused. */
+export function variantsOf(hand: Hand): readonly HandVariant[] {
+  let variants = variantCache.get(hand);
+  if (!variants) {
+    variants = handVariants(hand.groups);
+    variantCache.set(hand, variants);
+  }
+  return variants;
 }
 
 /** True if a full 152-tile set can make this variant. */
