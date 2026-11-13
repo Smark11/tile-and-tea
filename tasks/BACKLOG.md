@@ -17,7 +17,13 @@ A line `## 🛑 CHECKPOINT` means: stop the loop, so the human can try the app b
 - [x] **M0.5 Rack component.** A horizontal rack of 13–14 tiles: drag-to-reorder, tap-to-select, auto-sort by suit. *Done when:* it works smoothly on device-size layouts and has component tests.
 - [x] **M0.6 Navigation shell.** Four tabs (Learn, Train, Play, Progress) with placeholder screens in the Jade Parlor style, a settings sheet, and onboarding (3 swipeable welcome screens, shown once).
 
-## 🛑 CHECKPOINT: try the app in Expo Go / dev build. Do tiles look stunning?
+## ✅ CHECKPOINT PASSED: try the app in Expo Go / dev build. Do tiles look stunning?
+
+## W: Web launch foundation (web is the primary platform for now; native must keep working)
+
+- [ ] **W.1 Web-ready app.** Switch `app.json` web output to `"static"` (pure static hosting, no server). Rename the app from the template's "app" (name "Tile & Tea", slug `tile-and-tea`, scheme `tileandtea`), and replace the template's blue splash/favicon/icons with Jade Parlor ones (a code-generated tile mark is fine). Make it responsive: on phones it's full width; on tablet/desktop the app sits in a centered column (max ~520px) over a felt-textured jade background, with nothing stretched. Mouse and keyboard work everywhere (drag in rack, hover states, focus rings, Enter/Space activate). Add a `build:web` script (`expo export --platform web` → `dist/`). Extend the screenshot harness to also capture desktop (1440×900). *Done when:* `npm run build:web` succeeds, `npx serve dist` (or equivalent) loads every route including deep links, and screenshots look polished at both sizes.
+- [ ] **W.2 Web presence.** Per-route `<title>`/meta description via Expo Router `Head`. Add Open Graph + Twitter card tags with a beautiful 1200×630 share image (a rendered tile spread on jade), PWA manifest + theme color + apple-touch-icon so people can "Add to Home Screen", `robots.txt` and `sitemap.xml`. *Done when:* the exported HTML has correct tags for every public route and the share image looks premium.
+- [ ] **W.3 Traffic & product analytics.** A thin `src/analytics/` wrapper (`track(event, props)`, `screen(name)`) with a **PostHog** web implementation (`posthog-js`), configured from `EXPO_PUBLIC_POSTHOG_KEY` / `EXPO_PUBLIC_POSTHOG_HOST`. It's a silent no-op when the key is missing, in tests, and in dev. Use cookieless mode (`persistence: 'memory'`) so no cookie banner is needed, and respect Do Not Track. Automatically track page views for every route change (Expo Router pathname) plus referrer/UTM (PostHog does this). Track key events: `onboarding_completed`, `lesson_started`, `lesson_completed`, `drill_answered` (skill, correct), `game_started`, `game_finished`, `share_clicked`. Keep the event list in `docs/ANALYTICS.md`, and add new events there as later features ship. Native can be a no-op stub for now. Add a short plain-English privacy page at `/privacy`. *Done when:* unit tests prove the no-op behavior and event shapes, and `docs/ANALYTICS.md` explains how to read traffic in PostHog.
 
 ## M1: Learn
 
@@ -55,14 +61,19 @@ A line `## 🛑 CHECKPOINT` means: stop the loop, so the human can try the app b
 
 - [ ] **M5.1 Decision log.** Record each human decision + advisor evaluation during play.
 - [ ] **M5.2 Post-game review.** Replay highlighting top 3 mistakes/great plays with explanations.
-- [ ] **M5.3 Hints in play.** Optional "coach whisper" button (limited on free tier).
+- [ ] **M5.3 Hints in play.** Optional "coach whisper" button (a per-day limit hook, not enforced yet).
 
-## M6: Ship
+## M6: Web launch
 
-- [ ] **M6.1 Paywall + RevenueCat.** Free/Plus gating, trial, restore purchases, gorgeous paywall. (Requires human: RevenueCat keys → mark `[!]` until provided in `.env`.)
-- [ ] **M6.2 Polish pass.** Sound, haptics audit, Reduce Motion, Dynamic Type, VoiceOver audit, large-tile mode.
-- [ ] **M6.3 App icon, splash, store screenshots, store copy.** Write `docs/STORE_LISTING.md`.
-- [ ] **M6.4 Privacy policy + terms** (`docs/PRIVACY.md`), analytics opt-in (if any).
-- [ ] **M6.5 EAS config.** `eas.json` with development/preview/production profiles. (Human runs `eas build` / `eas submit` with their accounts.)
+- [ ] **M6.1 Polish pass.** Sound (off by default), Reduce Motion, text scaling, screen-reader audit (VoiceOver/NVDA on web), large-tile mode, loading states, empty states, a 404 page. Lighthouse on the exported site: Accessibility ≥ 95, Performance ≥ 85 (mobile).
+- [ ] **M6.2 Home / landing experience.** First-time web visitors arriving at `/` see a gorgeous one-screen intro (what it is, "Start learning free", a live interactive tile moment) before onboarding. Returning users go straight to their path. Track `landing_cta_clicked`.
+- [ ] **M6.3 Sharing hooks.** After a lesson, drill streak, or game, offer "Share" (Web Share API with a copy-link fallback) with a nice share card. A "Puzzle of the day" deep link (`/puzzle/<date>`) that works without onboarding. These are the organic growth loops.
+- [ ] **M6.4 Deploy config.** `docs/DEPLOY.md` with exact steps for EAS Hosting (`npx eas-cli deploy`) plus a fallback for any static host (Netlify/Cloudflare Pages: build command + `dist/` + SPA/deep-link notes). Include the PostHog env setup. The human runs the deploy with their own accounts.
 
-## 🛑 CHECKPOINT: TestFlight + Play internal testing with the beta group.
+## 🛑 CHECKPOINT: deploy the web app; share with the beta group; watch analytics.
+
+## Later: native apps & monetization (not now)
+
+- [ ] **N.1 Paywall + RevenueCat.** Free/Plus gating, trial, restore purchases, gorgeous paywall. On web, use Stripe or RevenueCat Web Billing. Needs human accounts and keys.
+- [ ] **N.2 App icon, splash, store screenshots, store copy.** Write `docs/STORE_LISTING.md`.
+- [ ] **N.3 EAS build config + native analytics.** `eas.json` profiles; PostHog React Native implementation behind the same wrapper. (The human runs `eas build` / `eas submit`.)

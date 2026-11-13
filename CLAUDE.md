@@ -17,6 +17,9 @@ You are the builder in an automated build loop. Each run, you complete **exactly
 6. **Do not commit.** The loop commits after review.
 7. If you're truly blocked (it needs human accounts or keys, or a rules ambiguity you can't settle), mark the task `[!]` with a one-line reason, record it in PROGRESS.md, and print `BLOCKED`.
 
+## Platform priority
+**Web is the launch platform for now.** Every feature must work and look polished on Expo web, on both phones and desktop (the screenshot harness captures both). It also has to keep working on iOS/Android, but don't add native-only features. Fire analytics events through `src/analytics/` (once W.3 exists) for any new user-facing milestone, and list them in `docs/ANALYTICS.md`. Monetization is deferred: no paywalls or purchase code until the "Later" section.
+
 ## Quality bar
 - **Visually stunning** is a requirement, not a nice-to-have. Use spring animations, careful spacing, the Jade Parlor palette, and real depth on tiles. Make it feel premium.
 - **Rules correctness** is sacred. The audience will notice mistakes. When unsure about a rule, choose the standard American Mah Jongg interpretation and note it in PROGRESS.md.
