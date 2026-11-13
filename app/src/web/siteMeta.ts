@@ -108,6 +108,13 @@ export const ROUTE_META: Readonly<Record<string, RouteMeta>> = {
       'The passes before the first discard: right, across, left, the optional second Charleston, blind passes, and the courtesy pass.',
     indexed: false,
   },
+  // Behind the welcome tour like the lessons, so out of search until M6.2.
+  '/card': {
+    title: '2027 Practice Card',
+    description:
+      'Forty original American Mah Jongg hands to practice with: year hands, 2468, like numbers, runs, quints, winds and dragons, and more.',
+    indexed: false,
+  },
   '/settings': {
     title: 'Settings',
     description: 'Adjust haptics and replay the welcome tour.',

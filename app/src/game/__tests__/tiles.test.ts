@@ -6,6 +6,7 @@ import {
   createShuffledTileSet,
   createTileSet,
   sameKind,
+  SUIT_DRAGON,
   tileA11yLabel,
   tileKey,
   tileName,
@@ -188,5 +189,11 @@ describe('createShuffledTileSet', () => {
     expect([...ids(shuffled)].sort((a, b) => a - b)).toEqual([...Array(152).keys()]);
     expect(ofType(shuffled, 'joker')).toHaveLength(8);
     expect(ofType(shuffled, 'flower')).toHaveLength(8);
+  });
+});
+
+describe('SUIT_DRAGON', () => {
+  it('pairs each suit with its own Dragon: Green/Bams, Red/Craks, Soap/Dots', () => {
+    expect(SUIT_DRAGON).toEqual({ bam: 'green', crak: 'red', dot: 'white' });
   });
 });

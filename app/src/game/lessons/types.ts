@@ -3,7 +3,11 @@
 // lesson, and validateLesson (./validate.ts) checks every lesson in a test, so
 // a typo in a question can't ship.
 
+import type { CardLine } from '../card/types';
 import type { TileKind } from '../tiles';
+
+// Card lines are shared with the practice card, which prints every hand this way.
+export type { CardInk, CardLine, CardSegment } from '../card/types';
 
 /** A page of explanation. Blank lines in `body` split it into paragraphs. */
 export type TextStep = {
@@ -11,32 +15,6 @@ export type TextStep = {
   readonly id: string;
   readonly title: string;
   readonly body: string;
-};
-
-/** Which of a card line's three suit colors a segment is printed in. */
-export type CardInk = 1 | 2 | 3;
-
-/** One group on a card line, e.g. "444" printed in the second suit color. */
-export type CardSegment = {
-  readonly text: string;
-  /** Suit color. Leave it off for tiles with no suit (Flowers, Winds). */
-  readonly ink?: CardInk;
-};
-
-/**
- * One hand written the way a card prints it. Lessons use these to teach card
- * reading. The hands are our own, never taken from any published card.
- */
-export type CardLine = {
-  readonly segments: readonly CardSegment[];
-  /** The fine print beside the line, e.g. "Any like number". */
-  readonly note?: string;
-  /** C: must stay concealed. Otherwise X: exposures allowed. */
-  readonly concealed: boolean;
-  /** What the hand pays. */
-  readonly value: number;
-  /** The line said aloud, since colors and spacing can't be heard. */
-  readonly spoken: string;
 };
 
 /**

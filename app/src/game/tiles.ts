@@ -82,6 +82,9 @@ export function sameKind(a: TileKind, b: TileKind): boolean {
   return tileKey(a) === tileKey(b);
 }
 
+/** Each suit's own Dragon, as cards use it: Green with Bams, Red with Craks, Soap with Dots. */
+export const SUIT_DRAGON: Readonly<Record<Suit, Dragon>> = { bam: 'green', crak: 'red', dot: 'white' };
+
 /** A full 152-tile set in sorted order, with ids 0–151. */
 export function createTileSet(): Tile[] {
   const tiles: Tile[] = [];

@@ -2,6 +2,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { AccessibilityInfo, StyleSheet, View } from 'react-native';
 
+import { PracticeCardLink } from '@/components/card/PracticeCardLink';
 import { hapticSuccess } from '@/components/haptics';
 import { LessonPath } from '@/components/lesson/path/LessonPath';
 import { TabScreen } from '@/components/shell/TabScreen';
@@ -41,10 +42,14 @@ export function LearnTab() {
         celebrating={celebrating}
         onOpen={(id) => router.push({ pathname: '/lesson/[id]', params: { id } })}
       />
+      <View style={styles.card}>
+        <PracticeCardLink />
+      </View>
     </TabScreen>
   );
 }
 
 const styles = StyleSheet.create({
   intro: { marginTop: spacing.xs },
+  card: { marginTop: spacing.lg },
 });
