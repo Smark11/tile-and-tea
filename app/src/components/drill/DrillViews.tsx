@@ -31,7 +31,7 @@ const CHECK = 'M5 12.5l4.4 4.4L19 7.4';
 
 /** The coach's reply to an answer, in the lesson feedback panel's moods. */
 export function evaluationMessage(evaluation: DrillEvaluation): FeedbackMessage {
-  const tone = evaluation.verdict === 'miss' ? 'revealed' : 'correct';
+  const tone = evaluation.verdict === 'miss' ? 'revealed' : evaluation.verdict === 'good' ? 'close' : 'correct';
   return { tone, title: evaluation.title, body: evaluation.explanation };
 }
 
@@ -135,6 +135,7 @@ export function DrillQuestionView({ question, selected, answer, onTap }: DrillQu
   if (question.picks > 1) instruction = `Pick ${question.picks}, then Check.`;
   else if (lines) instruction = 'Tap the line these tiles make.';
   else instruction = 'Tap a tile to answer.';
+  if (question.instruction) instruction = question.instruction;
 
   return (
     <View style={styles.question}>

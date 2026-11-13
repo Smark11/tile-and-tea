@@ -1,13 +1,15 @@
+import { bestHand } from './content/bestHand';
 import { nameTheHand } from './content/nameTheHand';
 import type { AnyDrill } from './types';
 
 export * from './allowance';
 export * from './session';
 export * from './types';
+export { bestHand } from './content/bestHand';
 export { nameTheHand } from './content/nameTheHand';
 
 /** Every playable drill, in the order the Train tab lists them. */
-export const DRILLS: readonly AnyDrill[] = [nameTheHand];
+export const DRILLS: readonly AnyDrill[] = [nameTheHand, bestHand];
 
 export const DRILL_ORDER: readonly string[] = DRILLS.map((d) => d.id);
 

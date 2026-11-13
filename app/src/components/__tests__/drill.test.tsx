@@ -5,8 +5,8 @@ import { DrillPlayer } from '@/components/drill/DrillPlayer';
 import { DrillScreen, parseSeed } from '@/components/drill/DrillScreen';
 import { evaluationMessage, roundLine, roundSummary } from '@/components/drill/DrillViews';
 import { TrainTab } from '@/components/tabs/TrainTab';
-import { localDay, nameTheHand, NO_USAGE, startRound, type Drill } from '@/game/drills';
-import { handLabel } from '@/game/drills/content/nameTheHand';
+import { bestHand, localDay, nameTheHand, NO_USAGE, startRound, type Drill } from '@/game/drills';
+import { handLabel } from '@/game/drills/content/words';
 import { CURRENT_CARD } from '@/game/card';
 import { useDrillProgress } from '@/state/drillProgress';
 
@@ -58,6 +58,23 @@ beforeEach(async () => {
   await AsyncStorage.clear();
   useDrillProgress.setState({ usage: NO_USAGE, records: {} });
   mockParams = {};
+});
+
+describe('DrillPlayer with the Best hand drill', () => {
+  it('shows the rack, its own instruction, and grades a pick with the coach’s plan', async () => {
+    const q = startRound(bestHand, 77).questions[0];
+    await render(<DrillPlayer drill={bestHand} seed={77} />);
+    expect(screen.getByRole('header', { name: 'Which hand should this rack go for?' })).toBeTruthy();
+    expect(screen.getByText('Tap the line your tiles are closest to.')).toBeTruthy();
+    expect(screen.getByLabelText(q.scene.caption)).toBeTruthy();
+    const choice = q.choices[0];
+    if (choice.kind !== 'line') throw new Error('Best hand offers card lines');
+    await fireEvent.press(screen.getByRole('button', { name: new RegExp(`^${choice.label}`) }));
+    // The reply reads as short paragraphs: the comparison first, then what the rack uses.
+    expect(screen.getByText(/ tiles? away(, the closest on the card|; your pick is \d+)\.$/)).toBeTruthy();
+    expect(screen.getByText(/^It uses \d+ of your 13 tiles\./)).toBeTruthy();
+    expect(track()).toHaveBeenCalledWith('drill_answered', expect.objectContaining({ skill: 'hand-choice' }));
+  });
 });
 
 describe('DrillPlayer with card-line choices', () => {
@@ -158,8 +175,10 @@ describe('TrainTab', () => {
     expect(router().push).toHaveBeenCalledWith('/drill/name-the-hand');
     await fireEvent.press(screen.getByRole('button', { name: 'Start: Name that hand' }));
     expect(router().push).toHaveBeenCalledTimes(2);
+    await fireEvent.press(screen.getByRole('button', { name: /^Best hand\./ }));
+    expect(router().push).toHaveBeenLastCalledWith('/drill/best-hand');
     // The drills still on the way aren't tappable.
-    expect(screen.queryByRole('button', { name: /Best hand/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Charleston/ })).toBeNull();
   });
 });
 
@@ -167,7 +186,8 @@ describe('copy', () => {
   it('maps verdicts onto the feedback panel moods', () => {
     const base = { score: 0, best: [0], title: 'T', explanation: 'E' };
     expect(evaluationMessage({ ...base, verdict: 'best' })).toEqual({ tone: 'correct', title: 'T', body: 'E' });
-    expect(evaluationMessage({ ...base, verdict: 'good' }).tone).toBe('correct');
+    // Nearly-best gets its own gold half-star, so "best" and "nearly" never look alike.
+    expect(evaluationMessage({ ...base, verdict: 'good' }).tone).toBe('close');
     expect(evaluationMessage({ ...base, verdict: 'miss' }).tone).toBe('revealed');
   });
 

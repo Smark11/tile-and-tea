@@ -28,7 +28,8 @@ import { Rack } from '@/components/rack/Rack';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { Tile, type TileSize } from '@/components/tile/Tile';
-import { currentAnswer, currentQuestion, nameTheHand, roundReducer, startRound } from '@/game/drills';
+import { bestHand, currentAnswer, currentQuestion, nameTheHand, roundReducer, startRound, type DrillQuestion } from '@/game/drills';
+import type { BestHandData } from '@/game/drills/content/bestHand';
 import { createRng } from '@/game/rng';
 import {
   ALL_KINDS,
@@ -373,6 +374,35 @@ function DrillDemo() {
   );
 }
 
+/**
+ * "Best hand": a fresh rack waiting for a pick, then a rack after a pick the
+ * coach calls close but not best (or a miss, if no line is one tile further).
+ */
+function BestHandDemo() {
+  const reduce = roundReducer(bestHand);
+  const start = startRound(bestHand, 2027);
+  const question = start.questions[1] as DrillQuestion<BestHandData>;
+  const verdictOf = (i: number) => bestHand.evaluate(question, [i]).verdict;
+  const nearly = question.choices.findIndex((_, i) => verdictOf(i) === 'good');
+  const fallback = question.choices.findIndex((_, i) => verdictOf(i) === 'miss');
+  const answered = reduce(reduce(start, { type: 'tap', index: 0 }), { type: 'next' });
+  const picked = reduce(answered, { type: 'tap', index: nearly >= 0 ? nearly : fallback });
+  const states = [
+    { label: 'Waiting for a pick', state: start },
+    { label: nearly >= 0 ? 'After a close pick' : 'After a miss', state: picked },
+  ];
+  return (
+    <View style={styles.lessonDemo}>
+      {states.map(({ label, state }) => (
+        <View key={label} style={styles.lessonState}>
+          <Text variant="caption">{label}</Text>
+          <DrillQuestionView question={currentQuestion(state)} selected={state.selected} answer={currentAnswer(state)} onTap={() => {}} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export function Styleguide() {
   const { colors, scheme, shadows } = useTheme();
   const semantic = Object.entries(colors) as [keyof ThemeColors, string][];
@@ -405,6 +435,10 @@ export function Styleguide() {
 
       <Section title="Drill pages">
         <DrillDemo />
+      </Section>
+
+      <Section title="Best hand drill">
+        <BestHandDemo />
       </Section>
 
       <Section title="Brand palette">

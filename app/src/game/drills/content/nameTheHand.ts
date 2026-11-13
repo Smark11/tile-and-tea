@@ -10,8 +10,9 @@ import { CURRENT_CARD, findMahJongg, handDistance, matchHand, variantsOf, type H
 import { PRINTED_X } from '../../card/notation';
 import { SUIT_VARS, type SuitVar } from '../../card/types';
 import { createRng, shuffle, type Rng } from '../../rng';
-import { copiesOf, SUIT_DRAGON, tileKey, tileName, type Suit, type TileKind } from '../../tiles';
+import { copiesOf, SUIT_DRAGON, tileKey, type Suit, type TileKind } from '../../tiles';
 import type { Drill, DrillEvaluation, DrillQuestion } from '../types';
+import { capitalize, COUNT_WORDS, groupName, handById, handLabel, list, plural, SUIT_PLURAL } from './words';
 
 export type NameTheHandData = {
   /** The tiles, in printed order (each unit's real tiles, then its Jokers). */
@@ -26,47 +27,10 @@ const CHOICES = 3;
 /** Extra Jokers sprinkled into pungs and bigger, beyond any a quint needs. */
 const EXTRA_JOKERS = [0, 0, 1, 1, 2] as const;
 
-const GROUP_NAMES = ['', 'single', 'pair', 'pung', 'kong', 'quint'];
-const SUIT_PLURAL: Record<Suit, string> = { bam: 'Bams', crak: 'Craks', dot: 'Dots' };
 const ORDINAL: Record<SuitVar, string> = { a: 'first', b: 'second', c: 'third' };
-const COUNT_WORDS = ['no', 'one', 'two', 'three', 'four', 'five'];
 
 function pick<T>(items: readonly T[], rng: Rng): T {
   return items[Math.floor(rng() * items.length)];
-}
-
-function capitalize(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-/** "Flowers", "Norths", "Red Dragons", "Soaps", "3 Bams". */
-function plural(kind: TileKind): string {
-  switch (kind.type) {
-    case 'suited':
-      return `${kind.rank} ${SUIT_PLURAL[kind.suit]}`;
-    case 'dragon':
-      return kind.dragon === 'white' ? 'Soaps' : `${tileName(kind)} Dragons`;
-    default:
-      return `${tileName(kind)}s`;
-  }
-}
-
-/** "pung of 3 Bams", or "single 2 Dot" for a lone tile. */
-function groupName(kind: TileKind, count: number): string {
-  return count === 1 ? tileName(kind) : `${GROUP_NAMES[count]} of ${plural(kind)}`;
-}
-
-/** Where a hand sits on the card: "2468, hand 2". */
-export function handLabel(hand: Hand, card: PracticeCard = CURRENT_CARD): string {
-  const section = card.sections.find((s) => s.id === hand.category);
-  const n = section ? section.hands.indexOf(hand) + 1 : 0;
-  return `${section?.title ?? hand.category}, hand ${n}`;
-}
-
-function handById(id: string, card: PracticeCard = CURRENT_CARD): Hand {
-  const hand = card.hands.find((h) => h.id === id);
-  if (!hand) throw new RangeError(`No hand ${id} on the card`);
-  return hand;
 }
 
 type DealtUnit = { kind: TileKind; count: number; jokers: number };
@@ -165,11 +129,6 @@ function suitRoles(hand: Hand): { numbers: Set<SuitVar>; dragons: Set<SuitVar> }
     }
   }
   return { numbers, dragons };
-}
-
-/** "a, b and c" */
-function list(items: readonly string[]): string {
-  return items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
 }
 
 /** "the first suit is Craks and the second suit is Dots", for the suits that carry numbers. */

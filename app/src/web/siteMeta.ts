@@ -116,6 +116,12 @@ export const ROUTE_META: Readonly<Record<string, RouteMeta>> = {
       'A quick card-reading drill: a finished American Mah Jongg hand is on the table, so find its line on the practice card.',
     indexed: false,
   },
+  '/drill/best-hand': {
+    title: 'Best hand',
+    description:
+      'A hand-choice drill: read a 13-tile American Mah Jongg rack against the practice card and pick the hand to go for.',
+    indexed: false,
+  },
   // Behind the welcome tour like the lessons, so out of search until M6.2.
   '/card': {
     title: '2027 Practice Card',

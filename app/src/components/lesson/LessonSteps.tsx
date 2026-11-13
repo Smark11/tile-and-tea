@@ -41,9 +41,9 @@ export function Entrance({ children, distance = 20 }: { children: ReactNode; dis
   return <Animated.View style={[styles.entrance, style]}>{children}</Animated.View>;
 }
 
-function Paragraphs({ body, color }: { body: string; color?: 'text' | 'onFeltMuted' }) {
+function Paragraphs({ body, color, gap }: { body: string; color?: 'text' | 'onFeltMuted'; gap?: number }) {
   return (
-    <View style={styles.paragraphs}>
+    <View style={[styles.paragraphs, gap !== undefined && { gap }]}>
       {body.split(/\n\s*\n/).map((p, i) => (
         <Text key={i} color={color}>
           {p.trim()}
@@ -224,7 +224,7 @@ export function TapStepView({ step, selected, revealAnswer, settled, onTap, sing
 
 function FeedbackIcon({ tone }: { tone: FeedbackMessage['tone'] }) {
   const { colors } = useTheme();
-  const fill = tone === 'retry' ? colors.gold : tone === 'revealed' ? tileInks.green : colors.primary;
+  const fill = tone === 'retry' || tone === 'close' ? colors.gold : tone === 'revealed' ? tileInks.green : colors.primary;
   return (
     <View style={[styles.icon, { backgroundColor: fill }]}>
       <Svg width={22} height={22} viewBox="0 0 24 24">
@@ -246,6 +246,19 @@ function FeedbackIcon({ tone }: { tone: FeedbackMessage['tone'] }) {
           // The coach's star, the same one that marks the answer tiles.
           <Path d="M12 2.5 L14.5 9.5 L21.5 12 L14.5 14.5 L12 21.5 L9.5 14.5 L2.5 12 L9.5 9.5 Z" fill="#FFFFFF" />
         )}
+        {tone === 'close' && (
+          // Half the coach's star: nearly the answer, worth half credit.
+          <>
+            <Path
+              d="M12 2.5 L14.5 9.5 L21.5 12 L14.5 14.5 L12 21.5 L9.5 14.5 L2.5 12 L9.5 9.5 Z"
+              fill="none"
+              stroke="#1B1B1B"
+              strokeWidth={1.6}
+              strokeLinejoin="round"
+            />
+            <Path d="M12 2.5 L9.5 9.5 L2.5 12 L9.5 14.5 L12 21.5 Z" fill="#1B1B1B" />
+          </>
+        )}
       </Svg>
     </View>
   );
@@ -254,13 +267,15 @@ function FeedbackIcon({ tone }: { tone: FeedbackMessage['tone'] }) {
 /** The coach's reply to an answer. Springs up into place and is read aloud. */
 export function FeedbackPanel({ message }: { message: FeedbackMessage }) {
   const { colors } = useTheme();
+  // Screen readers get the paragraphs as one flowing reply.
+  const spoken = message.body.replace(/\s*\n\s*\n\s*/g, ' ');
   useEffect(() => {
     // Web reads the live region; iOS needs an explicit announcement.
     if (Platform.OS !== 'web') {
-      AccessibilityInfo.announceForAccessibility(`${message.title}. ${message.body}`);
+      AccessibilityInfo.announceForAccessibility(`${message.title}. ${spoken}`);
     }
-  }, [message.title, message.body]);
-  const accent = message.tone === 'retry' ? colors.gold : colors.primaryText;
+  }, [message.title, spoken]);
+  const accent = message.tone === 'retry' || message.tone === 'close' ? colors.gold : colors.primaryText;
   return (
     <Entrance distance={16}>
       <Card
@@ -268,13 +283,13 @@ export function FeedbackPanel({ message }: { message: FeedbackMessage }) {
         style={[styles.feedback, { borderColor: accent }]}
         accessibilityLiveRegion="polite"
         accessible
-        accessibilityLabel={`${message.title}. ${message.body}`}
+        accessibilityLabel={`${message.title}. ${spoken}`}
         testID="lesson-feedback"
       >
         <FeedbackIcon tone={message.tone} />
         <View style={styles.feedbackText}>
           <Text variant="title3">{message.title}</Text>
-          <Text>{message.body}</Text>
+          <Paragraphs body={message.body} gap={spacing.sm} />
         </View>
       </Card>
     </Entrance>

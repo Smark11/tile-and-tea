@@ -5,9 +5,13 @@ import { correctIndexes, type Feedback, type SessionState } from './session';
 import type { TapStep } from './types';
 
 export type FeedbackMessage = {
-  /** Which mood the panel takes: a jade check, a gold nudge, or a calm reveal. */
-  readonly tone: Exclude<Feedback, 'open'>;
+  /**
+   * Which mood the panel takes: a jade check, a gold nudge, a calm reveal, or
+   * (drills only) a gold half-star for an answer that was nearly the best.
+   */
+  readonly tone: Exclude<Feedback, 'open'> | 'close';
   readonly title: string;
+  /** Paragraphs separated by a blank line ("\n\n"). */
   readonly body: string;
 };
 

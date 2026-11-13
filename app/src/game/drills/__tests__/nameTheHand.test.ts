@@ -1,7 +1,8 @@
 import { CURRENT_CARD, findMahJongg, MIN_JOKER_GROUP } from '../../card';
 import { copiesOf, tileKey, type TileKind } from '../../tiles';
 import { dealRound, nameTheHand } from '..';
-import { evaluateNameTheHand, explainMatch, explainMiss, generateNameTheHand, handLabel } from '../content/nameTheHand';
+import { evaluateNameTheHand, explainMatch, explainMiss, generateNameTheHand } from '../content/nameTheHand';
+import { handLabel } from '../content/words';
 
 const SEEDS = Array.from({ length: 600 }, (_, i) => i * 7919 + 13);
 const questions = SEEDS.map((seed) => generateNameTheHand(seed));

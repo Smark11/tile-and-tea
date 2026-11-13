@@ -40,6 +40,8 @@ export type DrillQuestion<Data = unknown> = {
   readonly key: string;
   /** The question, e.g. "Which hand do these tiles make?" */
   readonly prompt: string;
+  /** How to answer, under the prompt. Leave it out for the player's generic wording. */
+  readonly instruction?: string;
   readonly scene: DrillScene;
   readonly choices: readonly DrillChoice[];
   /** How many choices make an answer: 1 answers on tap; more need a Check. */
