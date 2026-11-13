@@ -1,8 +1,10 @@
 // npm run screenshots
 // Starts Expo web, then captures every static route at iPhone 15 size
-// (393×852 @3x) in light and dark mode into screenshots/ (gitignored).
+// (393×852 @3x) and desktop size (1440×900 @2x) in light and dark mode into
+// screenshots/ (gitignored).
 //   SCREENSHOT_PORT=8099  dev server port (must be free)
 //   SCREENSHOT_ROUTES=/,/dev/styleguide  capture only these routes
+//   SCREENSHOT_DEVICES=phone  capture only these devices (phone, desktop)
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import net from 'node:net';
@@ -12,13 +14,12 @@ import { createRequire } from 'node:module';
 import { chromium } from 'playwright';
 
 const require = createRequire(import.meta.url);
-const { discoverRoutes, screenshotName } = require('./routes.js');
+const { DEVICES, discoverRoutes, screenshotFile } = require('./routes.js');
 
 const APP_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT_DIR = path.join(APP_ROOT, 'screenshots');
 const PORT = Number(process.env.SCREENSHOT_PORT ?? 8099);
 const BASE_URL = `http://localhost:${PORT}`;
-const VIEWPORT = { width: 393, height: 852 };
 const SCHEMES = /** @type {const} */ (['light', 'dark']);
 const SERVER_TIMEOUT_MS = 120_000;
 const FIRST_LOAD_TIMEOUT_MS = 180_000; // first request triggers the web bundle build
@@ -82,12 +83,13 @@ async function waitForServer(server, output) {
   throw new Error(`Expo web didn't start within ${SERVER_TIMEOUT_MS / 1000}s:\n${output()}`);
 }
 
-async function capture(browser, route, scheme, timeout) {
+async function capture(browser, route, scheme, device, timeout) {
+  const { viewport, deviceScaleFactor, isMobile, hasTouch } = DEVICES[device];
   const context = await browser.newContext({
-    viewport: VIEWPORT,
-    deviceScaleFactor: 3,
-    isMobile: true,
-    hasTouch: true,
+    viewport,
+    deviceScaleFactor,
+    isMobile,
+    hasTouch,
     colorScheme: scheme,
   });
   // A fresh browser hasn't seen the welcome tour, so every route would redirect
@@ -112,8 +114,7 @@ async function capture(browser, route, scheme, timeout) {
     });
     await page.evaluate(() => document.fonts.ready);
     await page.waitForTimeout(SETTLE_MS);
-    const base = `${screenshotName(route)}-${scheme}`;
-    const file = path.join(OUT_DIR, `${base}.png`);
+    const file = path.join(OUT_DIR, screenshotFile(route, scheme, device));
     await page.screenshot({ path: file });
     log(`✓ ${path.relative(APP_ROOT, file)}`);
 
@@ -132,7 +133,7 @@ async function capture(browser, route, scheme, timeout) {
       });
       if (!moved) break;
       await page.waitForTimeout(250);
-      const frameFile = path.join(OUT_DIR, `${base}-${frame}.png`);
+      const frameFile = path.join(OUT_DIR, screenshotFile(route, scheme, device, frame));
       await page.screenshot({ path: frameFile });
       log(`✓ ${path.relative(APP_ROOT, frameFile)}`);
     }
@@ -147,6 +148,11 @@ async function main() {
     ? process.env.SCREENSHOT_ROUTES.split(',').map((r) => r.trim())
     : discoverRoutes(path.join(APP_ROOT, 'src', 'app'));
   if (routes.length === 0) throw new Error('No static routes found in src/app.');
+  const devices = process.env.SCREENSHOT_DEVICES
+    ? process.env.SCREENSHOT_DEVICES.split(',').map((d) => d.trim())
+    : Object.keys(DEVICES);
+  const unknown = devices.filter((d) => !(d in DEVICES));
+  if (unknown.length) throw new Error(`Unknown device(s): ${unknown.join(', ')}`);
   if (await portInUse(PORT)) {
     throw new Error(`Port ${PORT} is busy. Stop that process or set SCREENSHOT_PORT.`);
   }
@@ -172,10 +178,14 @@ async function main() {
     browser = await chromium.launch();
     let timeout = FIRST_LOAD_TIMEOUT_MS;
     for (const route of routes) {
-      for (const scheme of SCHEMES) {
-        const errors = await capture(browser, route, scheme, timeout);
-        timeout = 30_000;
-        if (errors.length) failures.push(`${route} (${scheme}):\n  ${errors.join('\n  ')}`);
+      for (const device of devices) {
+        for (const scheme of SCHEMES) {
+          const errors = await capture(browser, route, scheme, device, timeout);
+          timeout = 30_000;
+          if (errors.length) {
+            failures.push(`${route} (${device}, ${scheme}):\n  ${errors.join('\n  ')}`);
+          }
+        }
       }
     }
   } finally {
@@ -183,7 +193,7 @@ async function main() {
     stopServer(server);
   }
 
-  log(`${routes.length} route(s) × ${SCHEMES.length} schemes → ${path.relative(process.cwd(), OUT_DIR) || '.'}/`);
+  log(`${routes.length} route(s) × ${devices.length} device(s) × ${SCHEMES.length} schemes → ${path.relative(process.cwd(), OUT_DIR) || '.'}/`);
   if (failures.length) {
     console.error(`[screenshots] errors while rendering:\n${failures.join('\n')}`);
     process.exitCode = 1;

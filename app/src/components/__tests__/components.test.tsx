@@ -1,12 +1,12 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { StyleSheet, useColorScheme } from 'react-native';
 
-import { Button } from '../Button';
+import { Button, variantStyles } from '../Button';
 import { Card } from '../Card';
 import { Styleguide } from '../dev/Styleguide';
 import { Screen } from '../Screen';
 import { Text } from '../Text';
-import { colors, typography } from '@/theme';
+import { colors, shadows, typography, type Theme } from '@/theme';
 
 jest.mock('react-native/Libraries/Utilities/useColorScheme', () => ({
   __esModule: true,
@@ -54,6 +54,35 @@ describe('Text', () => {
 });
 
 describe('Button', () => {
+  it('shows a hover state under a pointer and drops it when the pointer leaves', async () => {
+    const onHoverIn = jest.fn();
+    await render(<Button title="Hover me" variant="secondary" onHoverIn={onHoverIn} />);
+    const button = screen.getByRole('button', { name: 'Hover me' });
+    // The pill is the nearest ancestor of the label that carries a border.
+    const border = () => {
+      for (let node = screen.getByText('Hover me').parent; node; node = node.parent) {
+        const color = StyleSheet.flatten(node.props.style)?.borderColor;
+        if (color) return color;
+      }
+    };
+    expect(border()).toBe(colors.light.border);
+    await fireEvent(button, 'hoverIn', {});
+    expect(border()).toBe(colors.light.primaryText);
+    expect(onHoverIn).toHaveBeenCalledTimes(1);
+    await fireEvent(button, 'hoverOut', {});
+    expect(border()).toBe(colors.light.border);
+  });
+
+  it('gives every variant a hover look that differs from idle and keeps its label color', () => {
+    const theme = { colors: colors.light, shadows: shadows.light } as unknown as Theme;
+    for (const variant of ['primary', 'secondary', 'quiet', 'ivory', 'quietOnFelt'] as const) {
+      const idle = variantStyles(variant, theme, 'idle');
+      const hovered = variantStyles(variant, theme, 'hovered');
+      expect(hovered.container).not.toEqual(idle.container);
+      expect(hovered.label).toBe(idle.label);
+    }
+  });
+
   it('is an accessible button that fires onPress', async () => {
     const onPress = jest.fn();
     await render(<Button title="Start lesson" onPress={onPress} />);

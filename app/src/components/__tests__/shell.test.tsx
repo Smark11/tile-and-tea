@@ -77,6 +77,18 @@ describe('TabBar', () => {
     expect(Haptics.selectionAsync).toHaveBeenCalledTimes(1);
   });
 
+  it('activates a tab with Space from the keyboard, as the ARIA tabs pattern expects', async () => {
+    const { props } = await renderBar(0);
+    const preventDefault = jest.fn();
+    await fireEvent(screen.getByRole('tab', { name: 'Play' }), 'keyDown', { key: ' ', preventDefault });
+    expect(props.navigateToTab).toHaveBeenCalledWith('play-1');
+    expect(preventDefault).toHaveBeenCalled(); // the page mustn't scroll as well
+
+    props.navigateToTab.mockClear();
+    await fireEvent(screen.getByRole('tab', { name: 'Train' }), 'keyDown', { key: 'a' });
+    expect(props.navigateToTab).not.toHaveBeenCalled();
+  });
+
   it('does not navigate to the tab already showing, or when a listener prevents it', async () => {
     const first = await renderBar(0);
     await fireEvent.press(screen.getByRole('tab', { name: 'Learn' }));
@@ -105,6 +117,17 @@ describe('Welcome', () => {
 
     await fireEvent.press(screen.getByRole('button', { name: 'Get started' }));
     expect(usePreferences.getState().onboarded).toBe(true);
+  });
+
+  it('sizes pages to the pager, not the window (the web column is narrower)', async () => {
+    await render(<Welcome />);
+    const pager = screen.getByTestId('welcome-pager');
+    const column = 520;
+    expect(column).toBeLessThan(width * 0.75); // so the two sizes give different pages
+    await fireEvent(pager, 'layout', { nativeEvent: { layout: { width: column, height: 700 } } });
+    // Two column-widths in is page 3; measured against the window it would be page 2.
+    await fireEvent.scroll(pager, { nativeEvent: { contentOffset: { x: column * 2, y: 0 } } });
+    expect(screen.getByLabelText('Page 3 of 3')).toBeOnTheScreen();
   });
 
   it('follows a swipe to the last page', async () => {

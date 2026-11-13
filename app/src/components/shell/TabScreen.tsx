@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -20,27 +20,36 @@ const PRESS_SPRING = { damping: 18, stiffness: 420, mass: 0.6 };
 export function SettingsButton() {
   const { colors, shadows } = useTheme();
   const reduceMotion = useReducedMotion();
+  const [hovered, setHovered] = useState(false);
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.get() }] }));
+  const settle = (to: number) => scale.set(reduceMotion ? 1 : withSpring(to, PRESS_SPRING));
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel="Settings"
       onPress={() => router.push('/settings')}
-      onPressIn={() => {
-        if (!reduceMotion) scale.set(withSpring(0.92, PRESS_SPRING));
+      onPressIn={() => settle(0.92)}
+      onPressOut={() => settle(hovered ? 1.05 : 1)}
+      onHoverIn={() => {
+        setHovered(true);
+        settle(1.05);
       }}
-      onPressOut={() => scale.set(withSpring(1, PRESS_SPRING))}
+      onHoverOut={() => {
+        setHovered(false);
+        settle(1);
+      }}
       hitSlop={spacing.xs}
+      style={styles.focusShape}
     >
       {({ pressed }) => (
         <Animated.View
           style={[
             styles.settings,
             {
-              backgroundColor: pressed ? colors.surfaceSunken : colors.surface,
-              borderColor: colors.border,
-              boxShadow: shadows.low,
+              backgroundColor: pressed || hovered ? colors.surfaceSunken : colors.surface,
+              borderColor: hovered ? colors.primaryText : colors.border,
+              boxShadow: hovered ? shadows.medium : shadows.low,
             },
             animatedStyle,
           ]}
@@ -82,6 +91,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   titles: { flex: 1, gap: spacing.xs },
+  focusShape: { borderRadius: radii.pill },
   settings: {
     width: minTouchTarget,
     height: minTouchTarget,

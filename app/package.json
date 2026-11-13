@@ -52,7 +52,10 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "screenshots": "node scripts/screenshots.mjs"
+    "screenshots": "node scripts/screenshots.mjs",
+    "build:web": "expo export --platform web",
+    "serve:web": "node scripts/serve-dist.mjs",
+    "brand:assets": "node --no-warnings=MODULE_TYPELESS_PACKAGE_JSON scripts/generate-brand-assets.mjs"
   },
   "jest": {
     "preset": "jest-expo",

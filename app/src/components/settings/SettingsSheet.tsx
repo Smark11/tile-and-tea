@@ -98,7 +98,7 @@ export function SettingsSheet() {
           <UpcomingRow title="Tile sounds" detail="Soft clacks as tiles land. Off unless you turn them on." />
           <UpcomingRow title="Large tiles" detail="Bigger tiles everywhere, for easier reading." />
           <UpcomingRow
-            title="Mah Jongg Coach Plus"
+            title="Tile & Tea Plus"
             detail="Every lesson, unlimited drills, and the post-game coach."
           />
         </Group>
@@ -112,7 +112,7 @@ export function SettingsSheet() {
 
         {version && (
           <Text variant="caption" align="center">
-            Mah Jongg Coach {version}
+            Tile & Tea {version}
           </Text>
         )}
       </View>

@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect } from 'react';
+import { memo, useCallback, useEffect, useRef } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -65,6 +65,8 @@ export type TileProps = {
 const PRESS_SPRING = { damping: 14, stiffness: 380, mass: 0.6 };
 const RAISE_SPRING = { damping: 16, stiffness: 260, mass: 0.8 };
 const GLOW_PULSE_MS = 1200;
+/** How far toward a full press a hovered tile lifts (0–1). */
+const HOVER_LIFT = 0.45;
 
 /** Spoken label: the tile's name, plus its coaching state. */
 export function tileAccessibilityLabel(kind: TileKind, hint = false): string {
@@ -149,10 +151,24 @@ export const Tile = memo(function Tile({
 
   const verticalSlop = Math.max(0, (minTouchTarget - height) / 2);
 
+  // A pointer resting on a tile (web, iPad) lifts it part way, as if a finger
+  // were about to take it. Pressing goes the rest of the way.
+  const hovered = useRef(false);
   const handlePressIn = useCallback(() => {
     if (!reduceMotion) press.set(withSpring(1, PRESS_SPRING));
   }, [reduceMotion, press]);
-  const handlePressOut = useCallback(() => press.set(withSpring(0, PRESS_SPRING)), [press]);
+  const handlePressOut = useCallback(
+    () => press.set(withSpring(hovered.current && !reduceMotion ? HOVER_LIFT : 0, PRESS_SPRING)),
+    [reduceMotion, press],
+  );
+  const handleHoverIn = useCallback(() => {
+    hovered.current = true;
+    if (!reduceMotion && !disabled) press.set(withSpring(HOVER_LIFT, PRESS_SPRING));
+  }, [reduceMotion, disabled, press]);
+  const handleHoverOut = useCallback(() => {
+    hovered.current = false;
+    press.set(withSpring(0, PRESS_SPRING));
+  }, [press]);
   const handlePress = useCallback(() => {
     hapticTick();
     onPress?.();
@@ -179,9 +195,12 @@ export const Tile = memo(function Tile({
       hitSlop={{ top: verticalSlop, bottom: verticalSlop }}
       onPressIn={interactive ? handlePressIn : undefined}
       onPressOut={interactive ? handlePressOut : undefined}
+      onHoverIn={interactive ? handleHoverIn : undefined}
+      onHoverOut={interactive ? handleHoverOut : undefined}
       onPress={onPress && handlePress}
       onLongPress={onLongPress && handleLongPress}
-      style={[{ width, height }, style]}
+      // Rounded so the web keyboard focus ring hugs the tile.
+      style={[{ width, height, borderRadius: radius }, style]}
     >
       <Animated.View
         pointerEvents="none"

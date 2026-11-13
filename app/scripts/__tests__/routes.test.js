@@ -1,5 +1,28 @@
 const path = require('node:path');
-const { routeForFile, routesFromFiles, screenshotName, discoverRoutes } = require('../routes');
+const {
+  DEVICES,
+  routeForFile,
+  routesFromFiles,
+  screenshotName,
+  screenshotFile,
+  discoverRoutes,
+} = require('../routes');
+
+describe('screenshotFile', () => {
+  it('keeps phone names, and marks desktop captures and scroll frames', () => {
+    expect(screenshotFile('/', 'light', 'phone')).toBe('index-light.png');
+    expect(screenshotFile('/train', 'dark', 'phone', 3)).toBe('train-dark-3.png');
+    expect(screenshotFile('/', 'light', 'desktop')).toBe('index-light-desktop.png');
+    expect(screenshotFile('/dev/styleguide', 'dark', 'desktop', 2)).toBe(
+      'dev-styleguide-dark-desktop-2.png',
+    );
+  });
+
+  it('captures an iPhone 15 and a 1440×900 desktop', () => {
+    expect(DEVICES.phone.viewport).toEqual({ width: 393, height: 852 });
+    expect(DEVICES.desktop.viewport).toEqual({ width: 1440, height: 900 });
+  });
+});
 
 describe('routeForFile', () => {
   it.each([

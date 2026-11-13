@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -184,14 +184,27 @@ function Dot({ index, width, scrollX }: { index: number; width: number; scrollX:
 export function Welcome() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const windowWidth = useWindowDimensions().width;
   const reduceMotion = useReducedMotion();
   const completeOnboarding = usePreferences((s) => s.completeOnboarding);
   const scrollRef = useRef<ScrollViewInstance>(null);
   const scrollX = useSharedValue(0);
   const [index, setIndex] = useState(0);
-  const [pagerHeight, setPagerHeight] = useState<number>();
+  // Pages are as wide as the pager itself, which on web is the app column
+  // (narrower than the window on desktop). The window stands in until the
+  // first layout pass measures it.
+  const [pagerSize, setPagerSize] = useState<{ width: number; height: number }>();
+  const width = pagerSize?.width ?? windowWidth;
+  const pagerHeight = pagerSize?.height;
   const last = index === PAGES.length - 1;
+
+  // If the column resizes (a desktop window, a rotated tablet), keep the
+  // current page lined up instead of stranding the pager between pages.
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ x: index * width, animated: false });
+    // Only a width change should re-align; Next/swipes already scroll.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [width]);
 
   const onScroll = useAnimatedScrollHandler({
     onScroll: (event) => scrollX.set(event.contentOffset.x),
@@ -242,7 +255,10 @@ export function Welcome() {
         scrollEventThrottle={16}
         // Pages take the pager's measured height so their content can center
         // vertically; a horizontal scroller doesn't stretch its children.
-        onLayout={(e) => setPagerHeight(e.nativeEvent.layout.height)}
+        onLayout={(e) => {
+          const { width: w, height: h } = e.nativeEvent.layout;
+          setPagerSize((prev) => (prev?.width === w && prev.height === h ? prev : { width: w, height: h }));
+        }}
         style={styles.pager}
       >
         {PAGES.map((page, i) => (

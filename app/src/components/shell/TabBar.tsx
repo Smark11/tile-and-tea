@@ -31,16 +31,20 @@ const TabItem = memo(function TabItem({ label, icon, focused, onPress, onLongPre
   const { colors } = useTheme();
   const reduceMotion = useReducedMotion();
   const active = useSharedValue(focused ? 1 : 0);
+  const hover = useSharedValue(0);
 
   useEffect(() => {
     active.set(reduceMotion ? (focused ? 1 : 0) : withSpring(focused ? 1 : 0, SPRING));
   }, [focused, reduceMotion, active]);
+  const setHover = (on: boolean) =>
+    hover.set(reduceMotion ? (on ? 1 : 0) : withSpring(on ? 1 : 0, SPRING));
 
   // The jade pill swells in behind the active icon, and the icon rises a touch.
-  const pillStyle = useAnimatedStyle(() => ({
-    opacity: active.get(),
-    transform: [{ scaleX: 0.55 + 0.45 * active.get() }],
-  }));
+  // A resting pointer (web, iPad) brings in a fainter pill as a preview.
+  const pillStyle = useAnimatedStyle(() => {
+    const shown = Math.max(active.get(), 0.5 * hover.get());
+    return { opacity: shown, transform: [{ scaleX: 0.55 + 0.45 * shown }] };
+  });
   const iconStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: -1.5 * active.get() }],
   }));
@@ -53,6 +57,18 @@ const TabItem = memo(function TabItem({ label, icon, focused, onPress, onLongPre
       accessibilityState={{ selected: focused }}
       onPress={onPress}
       onLongPress={onLongPress}
+      // React Native Web maps Enter to press for every role but Space only for
+      // buttons, so a keyboard user's Space on a tab would do nothing.
+      // The ARIA tabs pattern expects both keys to work.
+      onKeyDown={(e) => {
+        const key = (e as unknown as { key?: string }).key ?? e.nativeEvent?.key;
+        if (key === ' ') {
+          (e as unknown as { preventDefault?: () => void }).preventDefault?.();
+          onPress();
+        }
+      }}
+      onHoverIn={() => setHover(true)}
+      onHoverOut={() => setHover(false)}
       style={styles.item}
     >
       <View style={styles.iconWell}>
@@ -163,6 +179,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xxs,
+    // Rounds the web keyboard focus ring.
+    borderRadius: radii.lg,
   },
   iconWell: {
     width: 64,

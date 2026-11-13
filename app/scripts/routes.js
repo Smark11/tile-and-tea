@@ -51,10 +51,53 @@ function screenshotName(route) {
   return route === '/' ? 'index' : route.slice(1).replace(/\//g, '-');
 }
 
+/**
+ * Viewports the harness captures. The phone is an iPhone 15 at its real
+ * pixel density. The desktop is a common laptop size, where the app sits in its
+ * centered column on the felt stage.
+ */
+const DEVICES = {
+  phone: {
+    viewport: { width: 393, height: 852 },
+    deviceScaleFactor: 3,
+    isMobile: true,
+    hasTouch: true,
+    suffix: '',
+  },
+  desktop: {
+    viewport: { width: 1440, height: 900 },
+    deviceScaleFactor: 2,
+    isMobile: false,
+    hasTouch: false,
+    suffix: '-desktop',
+  },
+};
+
+/**
+ * PNG name for one capture. Phone shots keep the original names
+ * (`index-light.png`), desktop ones add `-desktop`, and below-the-fold frames
+ * add `-2`, `-3`, and so on.
+ * @param {string} route
+ * @param {'light' | 'dark'} scheme
+ * @param {keyof typeof DEVICES} device
+ * @param {number} [frame]
+ */
+function screenshotFile(route, scheme, device, frame = 1) {
+  const suffix = DEVICES[device].suffix;
+  return `${screenshotName(route)}-${scheme}${suffix}${frame > 1 ? `-${frame}` : ''}.png`;
+}
+
 /** @param {string} appDir absolute path to src/app */
 function discoverRoutes(appDir) {
   const files = fs.readdirSync(appDir, { recursive: true, encoding: 'utf8' });
   return routesFromFiles(files);
 }
 
-module.exports = { routeForFile, routesFromFiles, screenshotName, discoverRoutes };
+module.exports = {
+  DEVICES,
+  routeForFile,
+  routesFromFiles,
+  screenshotName,
+  screenshotFile,
+  discoverRoutes,
+};
