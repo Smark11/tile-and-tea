@@ -14,7 +14,8 @@ jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(),
   ImpactFeedbackStyle: { Light: 'light' },
 }));
-jest.mock('expo-router', () => ({ router: { push: jest.fn(), back: jest.fn() } }));
+jest.mock('expo-router', () => ({ router: { push: jest.fn(), back: jest.fn(), replace: jest.fn() } }));
+jest.mock('@/analytics', () => ({ track: jest.fn() }));
 
 beforeEach(async () => {
   jest.clearAllMocks();
@@ -115,8 +116,12 @@ describe('Welcome', () => {
     expect(screen.getByLabelText('Page 3 of 3')).toBeOnTheScreen();
     expect(usePreferences.getState().onboarded).toBe(false);
 
+    const { track } = jest.requireMock('@/analytics');
+    expect(track).not.toHaveBeenCalled();
     await fireEvent.press(screen.getByRole('button', { name: 'Get started' }));
     expect(usePreferences.getState().onboarded).toBe(true);
+    expect(track).toHaveBeenCalledTimes(1);
+    expect(track).toHaveBeenCalledWith('onboarding_completed', { via: 'finished' });
   });
 
   it('sizes pages to the pager, not the window (the web column is narrower)', async () => {
@@ -143,6 +148,9 @@ describe('Welcome', () => {
     await render(<Welcome />);
     await fireEvent.press(screen.getByRole('button', { name: 'Skip' }));
     expect(usePreferences.getState().onboarded).toBe(true);
+    expect(jest.requireMock('@/analytics').track).toHaveBeenCalledWith('onboarding_completed', {
+      via: 'skipped',
+    });
   });
 
   it('reads only the current page to screen readers', async () => {
@@ -187,5 +195,12 @@ describe('SettingsSheet', () => {
     expect(usePreferences.getState().onboarded).toBe(false);
     await fireEvent.press(screen.getByRole('button', { name: 'Done' }));
     expect(router.back).toHaveBeenCalled();
+  });
+
+  it('opens the privacy page in place of the sheet', async () => {
+    const { router } = jest.requireMock('expo-router');
+    await render(<SettingsSheet />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Read our privacy page' }));
+    expect(router.replace).toHaveBeenCalledWith('/privacy');
   });
 });

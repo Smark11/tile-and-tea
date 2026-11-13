@@ -1,0 +1,48 @@
+// The product events Tile & Tea sends, and the exact properties each one
+// carries. docs/ANALYTICS.md describes them in plain English; keep the two in
+// step (a test checks that every event here is documented there).
+//
+// Property values are only strings, numbers and booleans, never free text a
+// player typed, so nothing personal can slip into an event.
+
+/** Which welcome-tour button finished onboarding. */
+export type OnboardingExit = 'finished' | 'skipped';
+
+/** Where a finished game ended. */
+export type GameResult = 'won' | 'lost' | 'wall_game' | 'dead_hand' | 'abandoned';
+
+/** The screen a Share button sat on. */
+export type ShareSurface = 'lesson' | 'drill_streak' | 'game' | 'puzzle';
+
+export type AnalyticsEvents = {
+  /** The player left the welcome tour for the first time or on a replay. */
+  onboarding_completed: { via: OnboardingExit };
+  lesson_started: { lesson_id: string };
+  lesson_completed: { lesson_id: string };
+  /** One answer in a Train drill. `skill` is the drill's skill id. */
+  drill_answered: { skill: string; correct: boolean };
+  /** `opponents` is the bot level, e.g. 'beginner'. */
+  game_started: { opponents: string };
+  game_finished: { opponents: string; result: GameResult };
+  share_clicked: { surface: ShareSurface };
+};
+
+export type AnalyticsEventName = keyof AnalyticsEvents;
+
+/** Every event name, for docs checks and debugging. */
+export const ANALYTICS_EVENT_NAMES = [
+  'onboarding_completed',
+  'lesson_started',
+  'lesson_completed',
+  'drill_answered',
+  'game_started',
+  'game_finished',
+  'share_clicked',
+] as const satisfies readonly AnalyticsEventName[];
+
+// Fails to compile if an event is added to AnalyticsEvents but not listed above.
+type Missing = Exclude<AnalyticsEventName, (typeof ANALYTICS_EVENT_NAMES)[number]>;
+const listsEveryEvent: Missing extends never ? true : Missing = true;
+void listsEveryEvent;
+
+export type EventProperties = Record<string, string | number | boolean>;

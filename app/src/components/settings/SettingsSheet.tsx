@@ -51,6 +51,10 @@ function UpcomingRow({ title, detail }: { title: string; detail: string }) {
   );
 }
 
+// The privacy page takes the sheet's place, so on iOS it doesn't open
+// underneath the sheet, and its Back returns to the tab.
+const openPrivacy = () => router.replace('/privacy');
+
 /**
  * The settings sheet, opened from the button in each tab's header. Only
  * settings that work are switches; planned ones say "Coming soon".
@@ -107,6 +111,10 @@ export function SettingsSheet() {
           <View style={styles.action}>
             <Text variant="caption">New here, or showing a friend? Take the three-page tour again.</Text>
             <Button title="Replay the welcome tour" variant="secondary" block onPress={replayOnboarding} />
+          </View>
+          <View style={styles.action}>
+            <Text variant="caption">What we count to improve Tile & Tea, and what we never collect.</Text>
+            <Button title="Read our privacy page" variant="secondary" block onPress={openPrivacy} />
           </View>
         </Group>
 

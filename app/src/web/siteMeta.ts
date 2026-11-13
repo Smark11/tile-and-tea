@@ -69,6 +69,12 @@ export const ROUTE_META: Readonly<Record<string, RouteMeta>> = {
       'Meet Tile & Tea: a calm, beautiful way to learn American Mah Jongg, one small step at a time.',
     indexed: true,
   },
+  '/privacy': {
+    title: 'Privacy',
+    description:
+      'How Tile & Tea counts visits without cookies, what it never collects, and how Do Not Track turns counting off.',
+    indexed: true,
+  },
   '/settings': {
     title: 'Settings',
     description: 'Adjust haptics and replay the welcome tour.',

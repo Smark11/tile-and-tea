@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { useScreenTracking } from '@/analytics';
 import { RouteHead } from '@/components/shell/RouteHead';
 import { usePreferences, usePreferencesHydrated } from '@/state/preferences';
 import { radii, useTheme } from '@/theme';
@@ -18,6 +19,7 @@ export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const preferencesLoaded = usePreferencesHydrated();
   const onboarded = usePreferences((s) => s.onboarded);
+  useScreenTracking();
   const ready = (fontsLoaded || fontError !== null) && preferencesLoaded;
 
   useEffect(() => {
@@ -55,6 +57,8 @@ export default function RootLayout() {
             }}
           />
         </Stack.Protected>
+        {/* Open to everyone, onboarded or not, so a shared link always works. */}
+        <Stack.Screen name="privacy" />
         <Stack.Screen name="dev/styleguide" />
       </Stack>
     </GestureHandlerRootView>

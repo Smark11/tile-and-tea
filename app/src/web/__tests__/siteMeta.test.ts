@@ -141,7 +141,7 @@ describe('buildPageHead', () => {
 
 describe('sitemap and robots', () => {
   it('lists exactly the indexed pages', () => {
-    expect(sitemapPaths()).toEqual(['/', '/play', '/progress', '/train', '/welcome']);
+    expect(sitemapPaths()).toEqual(['/', '/play', '/privacy', '/progress', '/train', '/welcome']);
   });
 
   it('writes a valid sitemap with absolute URLs', () => {

@@ -20,6 +20,8 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 
+import { track } from '@/analytics';
+import type { OnboardingExit } from '@/analytics/events';
 import { Button } from '@/components/Button';
 import { hapticTick } from '@/components/haptics';
 import { Text } from '@/components/Text';
@@ -217,12 +219,14 @@ export function Welcome() {
     [width],
   );
 
-  const finish = () => {
+  const finish = (via: OnboardingExit) => {
     hapticTick();
+    track('onboarding_completed', { via });
     completeOnboarding();
   };
+  const skip = () => finish('skipped');
   const next = () => {
-    if (last) return finish();
+    if (last) return finish('finished');
     const page = index + 1;
     hapticTick();
     setIndex(page);
@@ -238,7 +242,7 @@ export function Welcome() {
           <Button
             title="Skip"
             variant="quietOnFelt"
-            onPress={finish}
+            onPress={skip}
             accessibilityElementsHidden={last}
             importantForAccessibility={last ? 'no-hide-descendants' : 'auto'}
           />
