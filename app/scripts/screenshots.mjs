@@ -29,10 +29,12 @@ const WELCOME_ROUTE = '/welcome';
  * fixed seed, the frames above are taken unanswered, then the script taps the
  * picks and Check and pages through the result as the following frames.
  * charleston.test.ts pins this fixture: a miss that shares one tile with the
- * coach's pass, on a rack with a Joker.
+ * coach's pass, on a rack with a Joker. discards.test.ts pins its fixture: a
+ * throw that keeps the hand but could be called by the exposed player.
  */
 const ANSWERED = {
   '/drill/charleston': { seed: 2, picks: [0, 1, 2] },
+  '/drill/discards': { seed: 2, picks: [0] },
 };
 
 /** Pages through the tallest scroller from the top, capturing frames from `first` on; returns the next frame number. */
@@ -108,7 +110,8 @@ async function capture(browser, baseUrl, route, scheme, device, timeout) {
         for (const el of document.querySelectorAll('div')) el.scrollTop = 0;
       });
       for (const i of answered.picks) await page.getByTestId(`drill-choice-${i}`).click();
-      await page.getByTestId('drill-primary').click();
+      // A one-pick question answers on the tap; more picks need Check.
+      if (answered.picks.length > 1) await page.getByTestId('drill-primary').click();
       await page.getByTestId('drill-tile-key').waitFor({ timeout });
       await page.waitForTimeout(SETTLE_MS);
       // The player scrolls to the feedback after Check; start from the top so

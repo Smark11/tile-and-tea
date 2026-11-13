@@ -31,6 +31,7 @@ import { Tile, type TileSize } from '@/components/tile/Tile';
 import {
   bestHand,
   charleston,
+  discards,
   currentAnswer,
   currentQuestion,
   nameTheHand,
@@ -439,6 +440,27 @@ function CharlestonDemo() {
   );
 }
 
+function DiscardsDemo() {
+  // The screenshot fixture's table: tile 0 keeps the hand but could be called.
+  const start = startRound(discards, 2);
+  const drill = { ...discards, questionsPerRound: 1, generate: () => start.questions[0] };
+  const first = startRound(drill, 1);
+  const states = [
+    { label: 'Your turn', state: first },
+    { label: 'After a risky throw', state: roundReducer(drill)(first, { type: 'tap', index: 0 }) },
+  ];
+  return (
+    <View style={styles.lessonDemo}>
+      {states.map(({ label, state }) => (
+        <View key={label} style={styles.lessonState}>
+          <Text variant="caption">{label}</Text>
+          <DrillQuestionView question={currentQuestion(state)} selected={state.selected} answer={currentAnswer(state)} onTap={() => {}} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export function Styleguide() {
   const { colors, scheme, shadows } = useTheme();
   const semantic = Object.entries(colors) as [keyof ThemeColors, string][];
@@ -479,6 +501,10 @@ export function Styleguide() {
 
       <Section title="Charleston drill">
         <CharlestonDemo />
+      </Section>
+
+      <Section title="Discards drill">
+        <DiscardsDemo />
       </Section>
 
       <Section title="Brand palette">

@@ -10,6 +10,7 @@ import {
   charleston,
   currentAnswer,
   currentQuestion,
+  discards,
   localDay,
   nameTheHand,
   NO_USAGE,
@@ -192,8 +193,8 @@ describe('TrainTab', () => {
     expect(router().push).toHaveBeenLastCalledWith('/drill/best-hand');
     await fireEvent.press(screen.getByRole('button', { name: /^Charleston\./ }));
     expect(router().push).toHaveBeenLastCalledWith('/drill/charleston');
-    // The drills still on the way aren't tappable.
-    expect(screen.queryByRole('button', { name: /Discards/ })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: /^Discards\./ }));
+    expect(router().push).toHaveBeenLastCalledWith('/drill/discards');
   });
 });
 
@@ -230,6 +231,32 @@ describe('Charleston question', () => {
     expect(screen.getByTestId('drill-tile-key')).toBeTruthy();
     expect(screen.getByTestId('drill-target')).toBeTruthy();
     expect(screen.getByText(answer()!.evaluation.target!.label)).toBeTruthy();
+  });
+});
+
+describe('Discards question', () => {
+  const question = discards.generate(7919 * 3 + 3);
+
+  it('lays out the table, reads it in one stop, and keys the coach’s discard after a tap', async () => {
+    const drill = { ...discards, questionsPerRound: 1, generate: () => question };
+    const reduce = roundReducer(drill);
+    let state = startRound(drill, 1);
+    const view = () => (
+      <DrillQuestionView question={currentQuestion(state)} selected={state.selected} answer={currentAnswer(state)} onTap={() => {}} />
+    );
+    await render(view());
+    const table = screen.getByTestId('drill-table');
+    expect(table.props.accessibilityLabel).toBe(`On the table. ${question.scene.table!.caption}`);
+    expect(table.props.accessibilityLabel).toMatch(/has exposed a (pung|kong|quint) of .+ Discarded: /);
+    expect(screen.getByText('You’ve just drawn. Tap the tile to discard.')).toBeTruthy();
+
+    const tile = question.choices.findIndex((c) => c.kind === 'tile' && !c.locked);
+    state = reduce(state, { type: 'tap', index: tile });
+    await render(view());
+    expect(screen.getByTestId('drill-tile-key').props.accessibilityLabel).toBe(
+      'Gold ring and raised: your discard. Green star: the coach’s discard.',
+    );
+    expect(screen.getByTestId('drill-target')).toBeTruthy();
   });
 });
 

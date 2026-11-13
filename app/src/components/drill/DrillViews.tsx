@@ -14,6 +14,8 @@ import { Card } from '@/components/Card';
 import { CardLineBody, CardLineView } from '@/components/lesson/CardLineView';
 import { FeedbackPanel, TileDisplayView, TileSpread } from '@/components/lesson/LessonSteps';
 import { Text } from '@/components/Text';
+
+import { TableView } from './TableView';
 import type { AnsweredQuestion, DrillChoice, DrillEvaluation, DrillQuestion, RoundScore, Verdict } from '@/game/drills';
 import type { FeedbackMessage } from '@/game/lessons';
 import { cardInks, fontFamilies, radii, spacing, tileInks, useTheme } from '@/theme';
@@ -131,18 +133,18 @@ function lockedReason(question: DrillQuestion): string | undefined {
  * What the marks on an answered multi-pick hand mean. Each entry names every
  * cue (color is never the only one) and wraps as a whole, never mid-phrase.
  */
-function TileKey() {
+function TileKey({ noun }: { noun: string }) {
   return (
     <View
       style={styles.key}
       testID="drill-tile-key"
       accessible
-      accessibilityLabel="Gold ring and raised: your pass. Green star: the coach’s pass."
+      accessibilityLabel={`Gold ring and raised: your ${noun}. Green star: the coach’s ${noun}.`}
     >
       <View style={styles.keyItem}>
         <View style={[styles.keySwatch, { borderColor: tileInks.selectRing }]} />
         <Text variant="callout" color="onFeltMuted">
-          Gold & raised: your pass
+          Gold & raised: your {noun}
         </Text>
       </View>
       <View style={styles.keyItem}>
@@ -152,7 +154,7 @@ function TileKey() {
           </Svg>
         </View>
         <Text variant="callout" color="onFeltMuted">
-          Star: the coach’s pass
+          Star: the coach’s {noun}
         </Text>
       </View>
     </View>
@@ -182,6 +184,7 @@ export function DrillQuestionView({ question, selected, answer, onTap }: DrillQu
       {!answer && <Text color="textMuted">{instruction}</Text>}
       {question.scene.card && <CardLineView line={question.scene.card} testID="drill-card-line" />}
       <Card tone="felt" elevation="high" style={styles.mat}>
+        {question.scene.table && <TableView table={question.scene.table} />}
         {question.scene.tiles.length > 0 && <TileDisplayView display={question.scene} />}
         {!lines && (
           <TileSpread
@@ -208,9 +211,7 @@ export function DrillQuestionView({ question, selected, answer, onTap }: DrillQu
             {locked}
           </Text>
         )}
-        {!lines && answer && question.picks > 1 && (
-          <TileKey />
-        )}
+        {!lines && answer && <TileKey noun={question.pickNoun ?? 'pass'} />}
       </Card>
       {answer?.evaluation.target && (
         <View style={styles.target} testID="drill-target">

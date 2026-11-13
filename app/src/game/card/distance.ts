@@ -17,8 +17,12 @@
 // - A set has 4 of each tile (8 Flowers). Copies on the player's own rack or
 //   exposures can't be drawn again, so a single or pair whose last copies sit
 //   in the player's exposures is out of reach, and a group short of real
-//   copies has to be finished with Jokers (`mustBeJokers`). What the other
-//   players have discarded or exposed isn't known here; the advisor weighs it.
+//   copies has to be finished with Jokers (`mustBeJokers`).
+// - Tiles the player can see elsewhere (`seen`: the discards and the other
+//   players' exposures) are gone too, so they can kill a hand the same way
+//   ("dead tiles"). Jokers count as well: a hand that needs more Jokers than
+//   are left unseen is out of reach. With nothing seen, only the player's own
+//   tiles count.
 //
 // It's built for real time: each hand's variants are compiled once to tile
 // indexes, and a rack is counted once for the whole card.
@@ -27,7 +31,7 @@ import { ALL_KINDS, copiesOf, tileKey, type TileKind } from '../tiles';
 import { holdingProblem, type Declaration } from './matcher';
 import { HAND_TILE_COUNT } from './notation';
 import type { Hand, PracticeCard } from './types';
-import { MIN_JOKER_GROUP, variantsOf, type HandVariant } from './variants';
+import { JOKERS_IN_SET, MIN_JOKER_GROUP, variantsOf, type HandVariant } from './variants';
 
 /**
  * A player's tiles mid-game: the rack plus any exposed groups, up to 14 tiles
@@ -125,15 +129,17 @@ type ExposedGroup = { readonly tile: number; readonly size: number; readonly jok
 type Tally = {
   /** Real rack tiles, by tile index. */
   readonly rack: readonly number[];
-  /** Real tiles anywhere in the holding (rack and exposures), by tile index. */
+  /** Real tiles no one can draw: in the holding (rack and exposures) or seen elsewhere, by tile index. */
   readonly held: readonly number[];
   /** Jokers on the rack. */
   readonly jokers: number;
+  /** Jokers no one can draw: the holding's own and every one seen. */
+  readonly jokersOut: number;
   readonly exposed: readonly ExposedGroup[];
   readonly exposedTiles: number;
 };
 
-function tally(holding: Holding): Tally {
+function tally(holding: Holding, seen: readonly TileKind[]): Tally {
   const rack = COPIES.map(() => 0);
   let jokers = 0;
   for (const kind of holding.concealed) {
@@ -147,7 +153,12 @@ function tally(holding: Holding): Tally {
     held[tile] += naturals.length;
     return { tile, size: tiles.length, jokers: tiles.length - naturals.length };
   });
-  return { rack, held, jokers, exposed, exposedTiles: exposed.reduce((n, e) => n + e.size, 0) };
+  let jokersOut = jokers + exposed.reduce((n, e) => n + e.jokers, 0);
+  for (const kind of seen) {
+    if (kind.type === 'joker') jokersOut += 1;
+    else held[indexOf(kind)] += 1;
+  }
+  return { rack, held, jokers, jokersOut, exposed, exposedTiles: exposed.reduce((n, e) => n + e.size, 0) };
 }
 
 /**
@@ -196,6 +207,8 @@ function measure(c: Compiled, t: Tally, exposureOf: readonly number[]): Measure 
     forced += Math.max(0, flexMissing - (drawable - strictMissing));
   }
   const jokers = Math.min(t.jokers, open);
+  // Places with no real copy left need Jokers, and only so many are still unseen.
+  if (forced - t.jokers > JOKERS_IN_SET - t.jokersOut) return null;
   // Rack Jokers go to the places only a Joker can fill first.
   return { away: HAND_TILE_COUNT - t.exposedTiles - used - jokers, mustBeJokers: Math.max(0, forced - jokers) };
 }
@@ -275,24 +288,40 @@ function reach(hand: Hand, t: Tally): HandReach {
   return { hand, tilesAway: m.away, variant: c.variant, units: plan(c, t, exposureOf), mustBeJokers: m.mustBeJokers };
 }
 
-function checked(holding: Holding): Tally {
-  const problem = holdingProblem(holding);
-  if (problem) throw new RangeError(`Not a possible holding: ${problem}`);
-  return tally(holding);
+/** Why the holding plus the tiles seen elsewhere couldn't all be in one set, or null. */
+export function seenProblem(holding: Holding, seen: readonly TileKind[]): 'too-many-copies' | null {
+  const copies = new Map<string, number>();
+  for (const kind of [...holding.concealed, ...(holding.exposures ?? []).flat(), ...seen]) {
+    const key = tileKey(kind);
+    const n = (copies.get(key) ?? 0) + 1;
+    if (n > copiesOf(kind)) return 'too-many-copies';
+    copies.set(key, n);
+  }
+  return null;
 }
 
-/** How far the holding is from one hand. Throws a RangeError if the holding is impossible (see `holdingProblem`). */
-export function handDistance(hand: Hand, holding: Holding): HandReach {
-  return reach(hand, checked(holding));
+function checked(holding: Holding, seen: readonly TileKind[]): Tally {
+  const problem = holdingProblem(holding) ?? seenProblem(holding, seen);
+  if (problem) throw new RangeError(`Not a possible holding: ${problem}`);
+  return tally(holding, seen);
+}
+
+/**
+ * How far the holding is from one hand. `seen` is every tile visible outside
+ * the holding (the discards, other players' exposures). Throws a RangeError if
+ * the tiles are impossible (see `holdingProblem` and `seenProblem`).
+ */
+export function handDistance(hand: Hand, holding: Holding, seen: readonly TileKind[] = []): HandReach {
+  return reach(hand, checked(holding, seen));
 }
 
 /**
  * How far the holding is from every hand on the card: the closest first (card
  * order breaks ties), then the hands it can no longer make, in card order.
- * Throws a RangeError if the holding is impossible (see `holdingProblem`).
+ * `seen` and errors as for `handDistance`.
  */
-export function cardDistances(holding: Holding, card: PracticeCard): HandReach[] {
-  const t = checked(holding);
+export function cardDistances(holding: Holding, card: PracticeCard, seen: readonly TileKind[] = []): HandReach[] {
+  const t = checked(holding, seen);
   const all = card.hands.map((hand) => reach(hand, t));
   const reachable = all.filter((r): r is HandDistance => r.tilesAway !== null);
   // Array sort is stable, so equal distances keep card order.

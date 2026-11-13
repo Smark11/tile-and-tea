@@ -45,7 +45,7 @@ A line `## 🛑 CHECKPOINT` means: stop the loop, so the human can try the app b
 - [x] **M3.1 Drill framework.** Drill = generator (seeded) + question UI + evaluator + explanation. Daily free limit hook (not enforced yet).
 - [x] **M3.2 "Best Hand" drill.** Show a rack → pick the top hand to pursue → explain using hand distance.
 - [x] **M3.3 Charleston drill.** Choose 3 tiles to pass → advisor scores it → explanation.
-- [ ] **M3.4 Discard drill.** Mid-game snapshot → choose a discard → explanation incl. dead tiles & danger.
+- [x] **M3.4 Discard drill.** Mid-game snapshot → choose a discard → explanation incl. dead tiles & danger.
 - [ ] **M3.5 Skill ratings.** Per-skill Elo-like rating, updated by drills; shown on Progress tab with animated meters.
 
 ## M4: Play

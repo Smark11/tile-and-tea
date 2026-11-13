@@ -128,6 +128,12 @@ export const ROUTE_META: Readonly<Record<string, RouteMeta>> = {
       'A Charleston drill: pick the three tiles to pass from a fresh American Mah Jongg rack, and see what the pass costs your closest hands.',
     indexed: false,
   },
+  '/drill/discards': {
+    title: 'Discards',
+    description:
+      'A discard drill: a moment mid-game in American Mah Jongg. Choose the tile to throw, counting dead tiles on the table and what an exposed opponent could call.',
+    indexed: false,
+  },
   // Behind the welcome tour like the lessons, so out of search until M6.2.
   '/card': {
     title: '2027 Practice Card',

@@ -29,10 +29,23 @@ export type DrillChoice =
       readonly label: string;
     };
 
+/** The other three players, from where the player sits. */
+export type TableSeat = 'left' | 'across' | 'right';
+
+/** What the rest of the table shows mid-game: the discards, and other players' exposures. */
+export type DrillTable = {
+  readonly discards: readonly TileKind[];
+  readonly exposures: readonly { readonly seat: TableSeat; readonly groups: readonly (readonly TileKind[])[] }[];
+  /** Read aloud in place of the tiles, as for a `TileDisplay`. */
+  readonly caption: string;
+};
+
 /** What is laid out on the felt for the player to think about. */
 export type DrillScene = TileDisplay & {
   /** A card line printed above the tiles, when the question is about one hand. */
   readonly card?: CardLine;
+  /** The rest of the table, when the question is a moment mid-game. */
+  readonly table?: DrillTable;
 };
 
 export type DrillQuestion<Data = unknown> = {
@@ -53,6 +66,8 @@ export type DrillQuestion<Data = unknown> = {
   readonly choiceGroups?: readonly number[];
   /** How many choices make an answer: 1 answers on tap; more need a Check. */
   readonly picks: number;
+  /** What a tile answer is called in the answered key ("your pass", "your discard"). Defaults to "pass". */
+  readonly pickNoun?: string;
   /** Whatever the evaluator needs. Plain JSON, so a round can be saved. */
   readonly data: Data;
 };
