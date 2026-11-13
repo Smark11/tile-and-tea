@@ -53,9 +53,10 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "screenshots": "node scripts/screenshots.mjs",
-    "build:web": "expo export --platform web",
+    "build:web": "expo export --platform web && node --no-warnings=MODULE_TYPELESS_PACKAGE_JSON scripts/write-web-files.mjs",
     "serve:web": "node scripts/serve-dist.mjs",
-    "brand:assets": "node --no-warnings=MODULE_TYPELESS_PACKAGE_JSON scripts/generate-brand-assets.mjs"
+    "brand:assets": "node --no-warnings=MODULE_TYPELESS_PACKAGE_JSON scripts/generate-brand-assets.mjs",
+    "brand:share": "node scripts/capture-share-image.mjs"
   },
   "jest": {
     "preset": "jest-expo",

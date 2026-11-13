@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { RouteHead } from '@/components/shell/RouteHead';
 import { usePreferences, usePreferencesHydrated } from '@/state/preferences';
 import { radii, useTheme } from '@/theme';
 import { fontAssets } from '@/theme/fonts';
@@ -25,11 +26,13 @@ export default function RootLayout() {
 
   // Hold the splash until fonts are in, so text never reflows from the system
   // face, and until saved preferences load, so a returning player never sees
-  // the welcome pages flash. If fonts fail, system fonts stand in.
-  if (!ready) return null;
+  // the welcome pages flash. If fonts fail, system fonts stand in. The page's
+  // head tags don't wait, so static export still writes them into the HTML.
+  if (!ready) return <RouteHead />;
 
   return (
     <GestureHandlerRootView style={styles.root}>
+      <RouteHead />
       <StatusBar style="auto" />
       <Stack
         screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}

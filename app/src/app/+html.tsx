@@ -2,6 +2,7 @@ import { ScrollViewStyleReset, useServerDocumentContext } from 'expo-router/html
 import type { PropsWithChildren } from 'react';
 
 import { webStageCss } from '@/components/shell/webStage';
+import { SITE_NAME, THEME_COLOR } from '@/web/siteMeta';
 
 /**
  * The HTML document for every statically exported web page. It only runs in
@@ -23,8 +24,17 @@ export default function Root({ children }: PropsWithChildren) {
           name="viewport"
           content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover"
         />
-        <meta name="theme-color" content="#0F3D33" />
+        <meta name="theme-color" content={THEME_COLOR} />
         <meta name="color-scheme" content="light dark" />
+        {/* Install to the home screen: the manifest covers Chrome/Android and
+            desktop; iOS Safari reads the apple-* tags and touch icon. */}
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+        <meta name="application-name" content={SITE_NAME} />
+        <meta name="apple-mobile-web-app-title" content={SITE_NAME} />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <ScrollViewStyleReset />
         <style id="tile-and-tea-stage" dangerouslySetInnerHTML={{ __html: webStageCss }} />
         {headNodes}

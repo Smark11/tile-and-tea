@@ -5,85 +5,29 @@
 //   SCREENSHOT_PORT=8099  dev server port (must be free)
 //   SCREENSHOT_ROUTES=/,/dev/styleguide  capture only these routes
 //   SCREENSHOT_DEVICES=phone  capture only these devices (phone, desktop)
-import { spawn } from 'node:child_process';
 import fs from 'node:fs';
-import net from 'node:net';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { chromium } from 'playwright';
+
+import { APP_ROOT, ONBOARDED_PREFERENCES, PREFERENCES_KEY, startExpoWeb } from './expo-web.mjs';
 
 const require = createRequire(import.meta.url);
 const { DEVICES, discoverRoutes, screenshotFile } = require('./routes.js');
 
-const APP_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT_DIR = path.join(APP_ROOT, 'screenshots');
 const PORT = Number(process.env.SCREENSHOT_PORT ?? 8099);
-const BASE_URL = `http://localhost:${PORT}`;
 const SCHEMES = /** @type {const} */ (['light', 'dark']);
-const SERVER_TIMEOUT_MS = 120_000;
 const FIRST_LOAD_TIMEOUT_MS = 180_000; // first request triggers the web bundle build
 const SETTLE_MS = 1_000; // let entrance springs finish before capturing
 const MAX_SCROLL_FRAMES = 10; // extra below-the-fold captures per long screen
-// Must match PREFERENCES_STORAGE_KEY and the persist version in src/state/preferences.ts.
-const PREFERENCES_KEY = 'mjc.preferences';
 const WELCOME_ROUTE = '/welcome';
 
 function log(msg) {
   console.log(`[screenshots] ${msg}`);
 }
 
-function portInUse(port) {
-  return new Promise((resolve) => {
-    const socket = net.connect({ port, host: '127.0.0.1' });
-    socket.once('connect', () => (socket.destroy(), resolve(true)));
-    socket.once('error', () => resolve(false));
-  });
-}
-
-function startServer() {
-  const server = spawn('npx', ['expo', 'start', '--web', '--port', String(PORT)], {
-    cwd: APP_ROOT,
-    env: { ...process.env, CI: '1', BROWSER: 'none', EXPO_NO_TELEMETRY: '1' },
-    stdio: ['ignore', 'pipe', 'pipe'],
-    detached: true, // own process group so we can stop Metro and its workers together
-  });
-  let output = '';
-  const collect = (chunk) => {
-    output = (output + chunk).slice(-8_000);
-  };
-  server.stdout.on('data', collect);
-  server.stderr.on('data', collect);
-  return { server, output: () => output };
-}
-
-function stopServer(server) {
-  if (server.exitCode !== null) return;
-  try {
-    process.kill(-server.pid, 'SIGTERM');
-  } catch {
-    // already gone
-  }
-}
-
-async function waitForServer(server, output) {
-  const deadline = Date.now() + SERVER_TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    if (server.exitCode !== null) {
-      throw new Error(`Expo exited early (code ${server.exitCode}):\n${output()}`);
-    }
-    try {
-      const res = await fetch(`${BASE_URL}/status`);
-      if (res.ok) return;
-    } catch {
-      // not listening yet
-    }
-    await new Promise((r) => setTimeout(r, 500));
-  }
-  throw new Error(`Expo web didn't start within ${SERVER_TIMEOUT_MS / 1000}s:\n${output()}`);
-}
-
-async function capture(browser, route, scheme, device, timeout) {
+async function capture(browser, baseUrl, route, scheme, device, timeout) {
   const { viewport, deviceScaleFactor, isMobile, hasTouch } = DEVICES[device];
   const context = await browser.newContext({
     viewport,
@@ -97,7 +41,7 @@ async function capture(browser, route, scheme, device, timeout) {
   if (route !== WELCOME_ROUTE) {
     await context.addInitScript(
       ([key, value]) => window.localStorage.setItem(key, value),
-      [PREFERENCES_KEY, JSON.stringify({ state: { onboarded: true }, version: 1 })],
+      [PREFERENCES_KEY, ONBOARDED_PREFERENCES],
     );
   }
   const page = await context.newPage();
@@ -107,7 +51,7 @@ async function capture(browser, route, scheme, device, timeout) {
     if (msg.type() === 'error') errors.push(msg.text());
   });
   try {
-    const res = await page.goto(BASE_URL + route, { waitUntil: 'networkidle', timeout });
+    const res = await page.goto(baseUrl + route, { waitUntil: 'networkidle', timeout });
     if (res && !res.ok()) errors.push(`HTTP ${res.status()}`);
     await page.waitForFunction(() => document.getElementById('root')?.childElementCount, null, {
       timeout,
@@ -153,34 +97,24 @@ async function main() {
     : Object.keys(DEVICES);
   const unknown = devices.filter((d) => !(d in DEVICES));
   if (unknown.length) throw new Error(`Unknown device(s): ${unknown.join(', ')}`);
-  if (await portInUse(PORT)) {
-    throw new Error(`Port ${PORT} is busy. Stop that process or set SCREENSHOT_PORT.`);
-  }
 
   fs.mkdirSync(OUT_DIR, { recursive: true });
   for (const f of fs.readdirSync(OUT_DIR)) {
     if (f.endsWith('.png')) fs.rmSync(path.join(OUT_DIR, f));
   }
 
-  log(`starting Expo web on ${BASE_URL}`);
-  const { server, output } = startServer();
-  const onSignal = () => {
-    stopServer(server);
-    process.exit(130);
-  };
-  process.once('SIGINT', onSignal);
-  process.once('SIGTERM', onSignal);
+  log(`starting Expo web on port ${PORT}`);
+  const { baseUrl, stop } = await startExpoWeb(PORT);
 
   let browser;
   const failures = [];
   try {
-    await waitForServer(server, output);
     browser = await chromium.launch();
     let timeout = FIRST_LOAD_TIMEOUT_MS;
     for (const route of routes) {
       for (const device of devices) {
         for (const scheme of SCHEMES) {
-          const errors = await capture(browser, route, scheme, device, timeout);
+          const errors = await capture(browser, baseUrl, route, scheme, device, timeout);
           timeout = 30_000;
           if (errors.length) {
             failures.push(`${route} (${device}, ${scheme}):\n  ${errors.join('\n  ')}`);
@@ -190,7 +124,7 @@ async function main() {
     }
   } finally {
     await browser?.close();
-    stopServer(server);
+    stop();
   }
 
   log(`${routes.length} route(s) × ${devices.length} device(s) × ${SCHEMES.length} schemes → ${path.relative(process.cwd(), OUT_DIR) || '.'}/`);

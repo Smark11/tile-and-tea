@@ -1,0 +1,25 @@
+{
+  "id": "/",
+  "name": "Tile & Tea",
+  "short_name": "Tile & Tea",
+  "description": "Learn American Mah Jongg at your own pace with gentle lessons, friendly practice drills and a patient coach. Beautiful tiles, clear explanations, no pressure.",
+  "lang": "en-US",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0F3D33",
+  "theme_color": "#0F3D33",
+  "categories": ["education", "games"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
