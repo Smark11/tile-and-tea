@@ -19,7 +19,7 @@ import {
   type Seat,
 } from '../engine/types';
 import type { Tile } from '../tiles';
-import { canCallMahJongg, canDeclareMahJongg } from './standIn';
+import { canCallMahJongg, canDeclareMahJongg } from './autoplay';
 
 /** Where a seat sits as the player looks at the table: they're always at the bottom. */
 export type SeatPosition = 'bottom' | 'right' | 'top' | 'left';

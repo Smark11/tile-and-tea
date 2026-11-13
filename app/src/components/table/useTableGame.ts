@@ -2,11 +2,9 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 
 import { track } from '@/analytics';
 import { gameReducer, newGame, type GameAction, type GameState, type Seat } from '@/game/engine';
+import { DEFAULT_LEVEL, type BotLevel } from '@/game/bots';
 import { arrangeRack, autoAction, outcomeFor } from '@/game/table';
 import type { Tile } from '@/game/tiles';
-
-/** Who the human plays against until the real bots arrive (M4.2). */
-export const OPPONENTS = 'stand_in';
 
 /** How long the table pauses before each automatic move, so play reads like people taking turns. */
 const PACE_MS: Record<GameAction['type'], number> = {
@@ -30,15 +28,17 @@ export type TableGameOptions = {
   initial?: GameState;
   /** Multiplies every pause; 0 plays automatic moves at once. */
   pace?: number;
-  /** Let the stand-ins play. Off for a frozen table, e.g. the styleguide. */
+  /** Let the bots play. Off for a frozen table, e.g. the styleguide. */
   autoplay?: boolean;
+  /** How well the three computer players play. */
+  level?: BotLevel;
 };
 
 /**
- * One game at the table: the engine state, the stand-ins' moves on a gentle
- * clock, and the player's own rack order and selection.
+ * One game at the table: the engine state, the bots’ moves on a gentle
+ * clock, and the player’s own rack order and selection.
  */
-export function useTableGame({ seed, you, initial, pace = 1, autoplay = true }: TableGameOptions) {
+export function useTableGame({ seed, you, initial, pace = 1, autoplay = true, level = DEFAULT_LEVEL }: TableGameOptions) {
   const [state, dispatch] = useReducer(gameReducer, initial ?? seed, (start) =>
     typeof start === 'number' ? newGame(start) : start,
   );
@@ -68,7 +68,7 @@ export function useTableGame({ seed, you, initial, pace = 1, autoplay = true }: 
     setSelected([]);
   }
 
-  const next = useMemo(() => (autoplay ? autoAction(state, you) : null), [autoplay, state, you]);
+  const next = useMemo(() => (autoplay ? autoAction(state, you, level) : null), [autoplay, state, you, level]);
   useEffect(() => {
     if (!next) return;
     const timer = setTimeout(() => dispatch(next), PACE_MS[next.type] * pace);
@@ -81,18 +81,18 @@ export function useTableGame({ seed, you, initial, pace = 1, autoplay = true }: 
   useEffect(() => {
     if (started.current || !autoplay) return;
     started.current = true;
-    track('game_started', { opponents: OPPONENTS });
-  }, [autoplay]);
+    track('game_started', { opponents: level });
+  }, [autoplay, level]);
   useEffect(() => {
     if (state.phase.type !== 'ended' || finished.current || !autoplay) return;
     finished.current = true;
-    track('game_finished', { opponents: OPPONENTS, result: outcomeFor(state.phase.result, you) });
-  }, [state.phase, you, autoplay]);
+    track('game_finished', { opponents: level, result: outcomeFor(state.phase.result, you) });
+  }, [state.phase, you, autoplay, level]);
   const abandon = useCallback(() => {
     if (finished.current || !started.current) return;
     finished.current = true;
-    track('game_finished', { opponents: OPPONENTS, result: 'abandoned' });
-  }, []);
+    track('game_finished', { opponents: level, result: 'abandoned' });
+  }, [level]);
 
   const reorder = useCallback(
     (next: Tile[]) => setArranged((a) => ({ ...a, order: next.map((t) => t.id), fresh: [] })),

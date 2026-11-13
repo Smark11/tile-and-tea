@@ -3,6 +3,8 @@ import { useSyncExternalStore } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
+import { DEFAULT_LEVEL, isBotLevel, type BotLevel } from '@/game/bots';
+
 /** AsyncStorage key. The screenshot harness seeds it too (scripts/screenshots.mjs). */
 export const PREFERENCES_STORAGE_KEY = 'mjc.preferences';
 
@@ -11,6 +13,8 @@ export type Preferences = {
   onboarded: boolean;
   /** Light haptic ticks on tile and rack interactions. */
   haptics: boolean;
+  /** The computer players the Play tab seats, kept for the next game. */
+  opponents: BotLevel;
 };
 
 type PreferencesStore = Preferences & {
@@ -18,9 +22,10 @@ type PreferencesStore = Preferences & {
   /** Shows the welcome screens again (Settings → Replay the welcome tour). */
   replayOnboarding: () => void;
   setHaptics: (on: boolean) => void;
+  setOpponents: (level: BotLevel) => void;
 };
 
-export const defaultPreferences: Preferences = { onboarded: false, haptics: true };
+export const defaultPreferences: Preferences = { onboarded: false, haptics: true, opponents: DEFAULT_LEVEL };
 
 // Hydration from storage is async. Track when it settles, success or failure,
 // so the app never sits on the splash screen because storage threw.
@@ -39,12 +44,18 @@ export const usePreferences = create<PreferencesStore>()(
       completeOnboarding: () => set({ onboarded: true }),
       replayOnboarding: () => set({ onboarded: false }),
       setHaptics: (haptics) => set({ haptics }),
+      setOpponents: (opponents) => set({ opponents }),
     }),
     {
       name: PREFERENCES_STORAGE_KEY,
       version: 1,
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: ({ onboarded, haptics }): Preferences => ({ onboarded, haptics }),
+      partialize: ({ onboarded, haptics, opponents }): Preferences => ({ onboarded, haptics, opponents }),
+      // A save from before opponent levels (or a bad value) keeps the default level.
+      merge: (saved, current) => {
+        const s = (saved ?? {}) as Partial<Preferences>;
+        return { ...current, ...s, opponents: isBotLevel(s.opponents) ? s.opponents : current.opponents };
+      },
       onRehydrateStorage: () => settleHydration,
     },
   ),

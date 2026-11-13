@@ -19,8 +19,8 @@ beforeEach(async () => {
 });
 
 describe('preferences', () => {
-  it('starts with the welcome tour unseen and haptics on', () => {
-    expect(defaultPreferences).toEqual({ onboarded: false, haptics: true });
+  it('starts with the welcome tour unseen, haptics on, and Club opponents', () => {
+    expect(defaultPreferences).toEqual({ onboarded: false, haptics: true, opponents: 'club' });
   });
 
   it('finishes and replays onboarding', () => {
@@ -33,9 +33,25 @@ describe('preferences', () => {
   it('persists only the preference values under its storage key', async () => {
     usePreferences.getState().completeOnboarding();
     usePreferences.getState().setHaptics(false);
+    usePreferences.getState().setOpponents('shark');
     await waitFor(async () =>
-      expect(await saved()).toEqual({ state: { onboarded: true, haptics: false }, version: 1 }),
+      expect(await saved()).toEqual({ state: { onboarded: true, haptics: false, opponents: 'shark' }, version: 1 }),
     );
+  });
+
+  it('keeps the default opponents when a save predates them or names an unknown level', async () => {
+    usePreferences.setState({ opponents: 'club' });
+    for (const state of [{ onboarded: true, haptics: true }, { onboarded: true, haptics: true, opponents: 'grandmaster' }]) {
+      await AsyncStorage.setItem(PREFERENCES_STORAGE_KEY, JSON.stringify({ state, version: 1 }));
+      await usePreferences.persist.rehydrate();
+      expect(usePreferences.getState()).toMatchObject({ onboarded: true, opponents: 'club' });
+    }
+    await AsyncStorage.setItem(
+      PREFERENCES_STORAGE_KEY,
+      JSON.stringify({ state: { onboarded: true, haptics: true, opponents: 'beginner' }, version: 1 }),
+    );
+    await usePreferences.persist.rehydrate();
+    expect(usePreferences.getState().opponents).toBe('beginner');
   });
 
   it('restores saved preferences on rehydrate', async () => {

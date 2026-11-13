@@ -4,6 +4,7 @@ import LearnRoute from '@/app/(tabs)/index';
 import PlayRoute from '@/app/(tabs)/play';
 import ProgressRoute from '@/app/(tabs)/progress';
 import TrainRoute from '@/app/(tabs)/train';
+import { usePreferences } from '@/state/preferences';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn() },
@@ -30,14 +31,19 @@ describe('tab screens', () => {
     expect(router.push).toHaveBeenCalledWith('/settings');
   });
 
-  it('starts a game from the Play tab, and marks the opponent levels as coming soon', async () => {
+  it('starts a game from the Play tab against the chosen opponents, and remembers the choice', async () => {
     const { router } = jest.requireMock('expo-router');
+    usePreferences.setState({ opponents: 'club' });
     await render(<PlayRoute />);
-    expect(screen.getAllByText('Coming soon').length).toBeGreaterThan(0);
-    // Settings and Start a game; the opponent previews aren't dead controls.
-    expect(screen.getAllByRole('button')).toHaveLength(2);
-    await fireEvent.press(screen.getByRole('button', { name: 'Start a game' }));
-    expect(router.push).toHaveBeenCalledWith('/game');
+    const radios = screen.getAllByRole('radio');
+    expect(radios).toHaveLength(3);
+    expect(screen.getByRole('radio', { name: /^Club opponents, strength 2 of 3\./ })).toBeChecked();
+    await fireEvent.press(screen.getByRole('radio', { name: /^Shark opponents/ }));
+    expect(screen.getByRole('radio', { name: /^Shark opponents/ })).toBeChecked();
+    expect(screen.getByRole('radio', { name: /^Club opponents/ })).not.toBeChecked();
+    expect(usePreferences.getState().opponents).toBe('shark');
+    await fireEvent.press(screen.getByRole('button', { name: 'Start a Shark game' }));
+    expect(router.push).toHaveBeenCalledWith({ pathname: '/game', params: { level: 'shark' } });
   });
 
   it('lays out the first lessons in order on the path', async () => {

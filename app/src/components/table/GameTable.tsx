@@ -5,9 +5,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
 import { CloseButton } from '@/components/lesson/LessonPlayer';
+import { LEVEL_INFO } from '@/components/play/levels';
 import { Rack } from '@/components/rack/Rack';
 import { Text } from '@/components/Text';
 import { Tile } from '@/components/tile/Tile';
+import { DEFAULT_LEVEL, type BotLevel } from '@/game/bots';
 import { PASS_SIZE, type GameAction, type GameState, type Seat } from '@/game/engine';
 import { canDeclareMahJongg, exposureLabel, resultSummary, SEAT_NAMES, tablePrompt } from '@/game/table';
 import { tileName, type Tile as TileModel } from '@/game/tiles';
@@ -24,6 +26,8 @@ export type GameTableProps = {
   you?: Seat;
   initial?: GameState;
   autoplay?: boolean;
+  /** How well the three computer players play. */
+  level?: BotLevel;
   pace?: number;
   onLeave?: () => void;
   onNewGame?: () => void;
@@ -54,6 +58,7 @@ export function GameTable({
   you = 0,
   initial,
   autoplay = true,
+  level = DEFAULT_LEVEL,
   pace,
   onLeave,
   onNewGame,
@@ -61,7 +66,7 @@ export function GameTable({
 }: GameTableProps) {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-  const game = useTableGame({ seed, you, initial, autoplay, pace });
+  const game = useTableGame({ seed, you, initial, autoplay, pace, level });
   const { state, tiles, freshIds, selected, toggle, reorder, act, abandon } = game;
   const prompt = tablePrompt(state, you);
   const rule = selectionRule(state, you, prompt.yourMove);
@@ -108,7 +113,7 @@ export function GameTable({
         <CloseButton label="Leave game" hint="This practice game isn’t saved." onPress={leave} onFelt />
         <View style={styles.headerTitle}>
           <Text variant="eyebrow" style={{ color: palette.gold }}>
-            Practice table
+            {`Practice table · ${LEVEL_INFO[level].name}`}
           </Text>
           <Text variant="caption" color="onFeltMuted">
             You’re {SEAT_NAMES[you]} · {state.wall.length} {state.wall.length === 1 ? 'tile' : 'tiles'} left in the wall

@@ -41,11 +41,12 @@ beforeEach(() => {
 afterEach(() => jest.useRealTimers());
 
 describe('GameTable', () => {
-  it('runs the first Charleston pass: pick 3 tiles, pass, and the stand-ins follow', async () => {
+  it('runs the first Charleston pass: pick 3 tiles, pass, and the bots follow', async () => {
     const seed = 1;
     const game = newGame(seed);
-    await renderTable(<GameTable seed={seed} pace={0} />);
-    expect(track).toHaveBeenCalledWith('game_started', { opponents: 'stand_in' });
+    await renderTable(<GameTable seed={seed} pace={0} level="beginner" />);
+    expect(track).toHaveBeenCalledWith('game_started', { opponents: 'beginner' });
+    expect(screen.getByText('Practice table · Beginner')).toBeTruthy();
     expect(screen.getByText('First Charleston · pass right')).toBeTruthy();
     expect(screen.getByLabelText(/^South, on your right\. 13 tiles in hand\./)).toBeTruthy();
     expect(screen.getByLabelText(/^North, on your left\./)).toBeTruthy();
@@ -94,7 +95,7 @@ describe('GameTable', () => {
   });
 
   it('plays a whole game through to the result and reports it once', async () => {
-    await renderTable(<GameTable seed={2} pace={0} />);
+    await renderTable(<GameTable seed={2} pace={0} level="shark" />);
     for (let i = 0; i < 600 && !screen.queryByTestId('table-result'); i++) {
       const pass = screen.queryByTestId('table-pass');
       if (pass && disabled(pass)) {
@@ -116,6 +117,6 @@ describe('GameTable', () => {
     expect(screen.getByTestId('table-result')).toBeTruthy();
     const finished = jest.mocked(track).mock.calls.filter(([name]) => name === 'game_finished');
     expect(finished).toHaveLength(1);
-    expect(finished[0][1]).toMatchObject({ opponents: 'stand_in' });
+    expect(finished[0][1]).toMatchObject({ opponents: 'shark' });
   }, 60_000);
 });

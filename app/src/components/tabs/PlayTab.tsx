@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
 
-import { StyleSheet, View } from 'react-native';
-
-import { ComingSoon, FeltHero, PreviewList, type PreviewItem } from '@/components/shell/Preview';
+import { OpponentPicker } from '@/components/play/OpponentPicker';
+import { LEVEL_INFO } from '@/components/play/levels';
+import { FeltHero } from '@/components/shell/Preview';
 import { TabScreen } from '@/components/shell/TabScreen';
 import type { TileKind } from '@/game/tiles';
+import { usePreferences } from '@/state/preferences';
 
 // The four winds in turn order: play passes East, South, West, North.
 const HERO_TILES: readonly TileKind[] = [
@@ -14,31 +15,22 @@ const HERO_TILES: readonly TileKind[] = [
   { type: 'wind', wind: 'N' },
 ];
 
-const OPPONENTS: readonly PreviewItem[] = [
-  { title: 'Beginner', detail: 'Learning alongside you. Plays fair, makes mistakes.', tile: { type: 'flower' } },
-  { title: 'Club', detail: 'A steady player from a weekly game.', tile: { type: 'dragon', dragon: 'green' } },
-  { title: 'Shark', detail: 'Sharp, patient, and hard to beat.', tile: { type: 'dragon', dragon: 'red' } },
-];
-
 export function PlayTab() {
+  const level = usePreferences((s) => s.opponents);
+  const setLevel = usePreferences((s) => s.setOpponents);
   return (
     <TabScreen eyebrow="Play" title="Take a seat">
       <FeltHero
         tiles={HERO_TILES}
         tilesLabel="The four winds: East, South, West, and North"
         title="A full game, at your pace"
-        body="Sit down with three friendly computer players: the Charleston, draws and discards, all the way to Mah Jongg."
-        action={{ title: 'Start a game', onPress: () => router.push('/game') }}
+        body="Sit down with three computer players: the Charleston, draws and discards, all the way to Mah Jongg."
+        action={{
+          title: `Start a ${LEVEL_INFO[level].name} game`,
+          onPress: () => router.push({ pathname: '/game', params: { level } }),
+        }}
       />
-      {/* Opponent levels arrive with the bots (M4.2); today's table seats friendly stand-ins. */}
-      <View style={styles.soon}>
-        <ComingSoon />
-      </View>
-      <PreviewList heading="Opponents" items={OPPONENTS} />
+      <OpponentPicker value={level} onChange={setLevel} />
     </TabScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  soon: { flexDirection: 'row', marginBottom: -8 },
-});

@@ -1,3 +1,4 @@
+import { botAction } from '@/game/bots';
 import { CURRENT_CARD } from '@/game/card';
 import { awaiting, newGame, step, type GameAction, type GameState, type Seat } from '@/game/engine';
 import { HONORS_1, idOf, N, E, W, S, of, play, table, turn } from '@/game/engine/__fixtures__/table';
@@ -19,7 +20,6 @@ import {
   playOut,
   positionOf,
   resultSummary,
-  standInAction,
   tablePrompt,
   wallLayout,
   WALL_STACKS,
@@ -94,83 +94,8 @@ describe('arrangeRack', () => {
   });
 });
 
-describe('stand-ins', () => {
-  // Full games of stand-ins, Charleston to the end, with every move checked by the engine.
-  const SEEDS = [1, 2, 3, 5];
-  const finals = new Map<number, GameState>();
-  beforeAll(() => {
-    for (const seed of SEEDS) finals.set(seed, playOut(newGame(seed), () => false));
-  });
-
-  it('play whole games legally to an end', () => {
-    for (const seed of SEEDS) {
-      const end = finals.get(seed)!;
-      expect(end.phase.type).toBe('ended');
-      const held = end.players.flatMap((p) => [...p.rack, ...p.exposures.flatMap((e) => e.tiles)]);
-      expect(held.length + end.wall.length + end.discards.length).toBe(TILE_COUNT);
-    }
-  });
-
-  it('win some games and expose some groups', () => {
-    const results = SEEDS.map((s) => finals.get(s)!.phase);
-    expect(results.some((p) => p.type === 'ended' && p.result.type === 'mahJongg')).toBe(true);
-    expect(SEEDS.some((s) => finals.get(s)!.players.some((p) => p.exposures.length > 0))).toBe(true);
-  });
-
-  it('never pass or throw a Joker', () => {
-    let state = newGame(4);
-    for (let moves = 0; moves < 400 && state.phase.type !== 'ended'; moves++) {
-      const action = autoAction(state, null)!;
-      const player = 'seat' in action ? state.players[action.seat] : null;
-      const tilesOut =
-        action.type === 'charlestonPass' || action.type === 'courtesyPass'
-          ? action.tiles
-          : action.type === 'discard'
-            ? [action.tile]
-            : [];
-      for (const id of tilesOut) expect(isJoker(player!.rack.find((t) => t.id === id)!)).toBe(false);
-      const result = step(state, action);
-      expect(result.ok).toBe(true);
-      if (result.ok) state = result.state;
-    }
-  });
-
-  it('declare Mah Jongg when their tiles make a hand', () => {
-    const state = table({ racks: { 1: HONORS_1 }, phase: turn(1, 'discard') });
-    expect(standInAction(state, 1)).toEqual({ type: 'declareMahJongg', seat: 1 });
-  });
-
-  it('call a discard for Mah Jongg, and wait their turn otherwise', () => {
-    const before = table({
-      racks: { 0: [S], 2: [...of(3, N), ...of(4, E), ...of(4, W), ...of(2, S)] },
-      phase: turn(0, 'discard'),
-    });
-    expect(standInAction(before, 2)).toBeNull();
-    const calls = play(before, { type: 'discard', seat: 0, tile: idOf(before, 0, S) });
-    expect(standInAction(calls, 2)).toEqual({ type: 'call', seat: 2, claim: { type: 'mahJongg' } });
-  });
-
-  it('expose a pung when the call brings a hand closer', () => {
-    // Two tiles from Honors-1 (NNN EEEE WWWW SSS): the North pung leaves one to go.
-    const before = table({
-      racks: { 0: [N], 2: [...of(2, N), ...of(4, E), ...of(4, W), ...of(2, S)] },
-      phase: turn(0, 'discard'),
-    });
-    const calls = play(before, { type: 'discard', seat: 0, tile: idOf(before, 0, N) });
-    const action = standInAction(calls, 2)!;
-    expect(action).toMatchObject({ type: 'call', claim: { type: 'expose' } });
-    const called = play(calls, action, { type: 'pass', seat: 1 }, { type: 'pass', seat: 3 });
-    expect(called.players[2].exposures).toHaveLength(1);
-    expect(called.players[2].dead).toBeNull();
-  });
-
-  it('never call their way into a dead hand', () => {
-    for (const seed of SEEDS) expect(finals.get(seed)!.players.every((p) => p.dead === null)).toBe(true);
-  });
-});
-
 describe('autoAction for the human seat', () => {
-  it('waits for the player’s Charleston pass but moves the stand-ins', () => {
+  it('waits for the player’s Charleston pass but moves the bots', () => {
     let state = newGame(7);
     for (let i = 0; i < 3; i++) {
       const action = autoAction(state, 0)!;
@@ -219,7 +144,7 @@ describe('tablePrompt', () => {
   });
 
   it('says when the table is waiting on others', () => {
-    const state = play(newGame(1), standInAction(newGame(1), 0)!);
+    const state = play(newGame(1), botAction(newGame(1), 0, 'club')!);
     expect(tablePrompt(state, 0)).toMatchObject({ detail: 'Waiting for the others to pass.', yourMove: false });
   });
 
@@ -268,8 +193,8 @@ describe('demo tables', () => {
   it('midGameTable stops at East’s discard with a few rows of discards and Jokers in two exposures', () => {
     const state = midGameTable();
     expect(state.phase).toMatchObject({ type: 'turn', seat: 0, step: 'discard' });
-    expect(state.discards).toHaveLength(22);
-    expect(state.players.map((p) => p.exposures.length)).toEqual([1, 0, 0, 1]);
+    expect(state.discards).toHaveLength(25);
+    expect(state.players.map((p) => p.exposures.length)).toEqual([1, 0, 2, 1]);
     expect(jokersExposed(state)).toEqual([1, 0, 0, 1]);
     for (const p of state.players) {
       for (const e of p.exposures) {

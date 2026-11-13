@@ -1,11 +1,11 @@
 // Tables partway through a game, for the styleguide and screenshots. The
-// stand-ins never expose a Joker, so the demo hands each exposed player's
+// bots expose real tiles first, so the demo hands each exposed player's
 // spare Joker into their exposure in place of a rack tile: the same group,
 // as a player who chose to expose the Joker would have made it.
 // table.test.ts pins what these produce.
 
 import { newGame, type GameState, type PlayerState } from '../engine';
-import { playOut } from './standIn';
+import { playOut } from './autoplay';
 
 export const DEMO_TABLE_SEED = 5;
 

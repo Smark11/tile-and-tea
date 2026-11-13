@@ -475,7 +475,7 @@ const SAMPLE_RATINGS: readonly (SkillRating | undefined)[] = [
   undefined,
 ];
 
-/** The table mid-game (stand-ins frozen): East to discard, with exposures on two seats. */
+/** The table mid-game (Club bots, frozen): East to discard, with exposures on three seats. */
 function GameTableDemo() {
   const initial = useMemo(() => midGameTable(), []);
   return <GameTable seed={DEMO_TABLE_SEED} initial={initial} autoplay={false} scroll={false} />;
