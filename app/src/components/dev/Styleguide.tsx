@@ -5,12 +5,18 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { LessonComplete } from '@/components/lesson/LessonComplete';
 import { FeedbackPanel, TapStepView, TilesStepView } from '@/components/lesson/LessonSteps';
+import { LessonPath } from '@/components/lesson/path/LessonPath';
 import {
+  buildLessonPath,
   correctIndexes,
+  emptyProgress,
   feedbackMessage,
   isSingleAnswer,
   lessonReducer,
   LESSONS,
+  PLANNED_LESSONS,
+  recordCompletion,
+  saveSnapshot,
   startSession,
   type Lesson,
   type SessionAction,
@@ -241,6 +247,33 @@ function RackDemo() {
   );
 }
 
+/**
+ * The lesson path partway along, so every node state shows at once: finished,
+ * under way, locked, and (in the second path) reached but still being written.
+ * Planned lessons stand in as written ones here, with placeholder steps.
+ */
+function LessonPathDemo() {
+  const placeholder = (p: (typeof PLANNED_LESSONS)[number]): Lesson => ({
+    ...p,
+    minutes: 5,
+    steps: Array.from({ length: 8 }, (_, i) => ({ kind: 'text' as const, id: `s${i}`, title: 'Step', body: 'Body' })),
+  });
+  const written = [LESSONS[0], ...PLANNED_LESSONS.slice(0, 2).map(placeholder)];
+  const at = new Date('2026-11-12T10:00:00Z');
+  const one = recordCompletion(emptyProgress, LESSONS[0].id, { firstTry: 3, questions: 3 }, at);
+  const midway = saveSnapshot(one, written[1].id, { stepIndex: 5, results: {} });
+  const reached = recordCompletion(one, written[1].id, { firstTry: 2, questions: 4 }, at);
+  const open = () => {};
+  return (
+    <View style={styles.lessonDemo}>
+      <Text variant="caption">Partway through lesson 2</Text>
+      <LessonPath nodes={buildLessonPath(midway, written)} onOpen={open} />
+      <Text variant="caption">A finished lesson, and one still being written</Text>
+      <LessonPath nodes={buildLessonPath(reached, written.slice(0, 2)).slice(0, 3)} onOpen={open} />
+    </View>
+  );
+}
+
 /** Every lesson page state, frozen, so each can be reviewed without playing through. */
 function LessonDemo() {
   const lesson = LESSONS[0];
@@ -307,6 +340,10 @@ export function Styleguide() {
 
       <Section title="Rack">
         <RackDemo />
+      </Section>
+
+      <Section title="Lesson path">
+        <LessonPathDemo />
       </Section>
 
       <Section title="Lesson pages">

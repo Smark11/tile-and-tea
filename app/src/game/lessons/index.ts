@@ -2,6 +2,7 @@ import { meetTheTiles } from './content/meet-the-tiles';
 import type { Lesson } from './types';
 
 export * from './feedback';
+export * from './path';
 export * from './progress';
 export * from './session';
 export * from './types';

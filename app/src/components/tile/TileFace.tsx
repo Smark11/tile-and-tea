@@ -406,7 +406,7 @@ const subscribeNever = () => () => {};
  * (useId differs between Expo's server and client trees); React then
  * re-renders with each tile's own suffix.
  */
-function useGradientUid(): string {
+export function useGradientUid(): string {
   const [uid] = useState(() => `-${++nextGradientUid}`);
   return useSyncExternalStore(subscribeNever, () => uid, () => '');
 }

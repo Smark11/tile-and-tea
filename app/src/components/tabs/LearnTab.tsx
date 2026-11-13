@@ -1,49 +1,50 @@
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
+import { AccessibilityInfo, StyleSheet, View } from 'react-native';
 
-import { FeltHero, PreviewList, type PreviewItem } from '@/components/shell/Preview';
+import { hapticSuccess } from '@/components/haptics';
+import { LessonPath } from '@/components/lesson/path/LessonPath';
 import { TabScreen } from '@/components/shell/TabScreen';
-import { LESSON_ORDER, LESSONS, lessonStatus } from '@/game/lessons';
-import type { TileKind } from '@/game/tiles';
+import { Text } from '@/components/Text';
+import { buildLessonPath, celebrationAnnouncement, LESSONS, pathHeadline } from '@/game/lessons';
 import { useLessonProgress } from '@/state/lessonProgress';
+import { spacing } from '@/theme';
 
-const HERO_TILES: readonly TileKind[] = [
-  { type: 'suited', suit: 'bam', rank: 1 },
-  { type: 'suited', suit: 'dot', rank: 5 },
-  { type: 'suited', suit: 'crak', rank: 9 },
-  { type: 'dragon', dragon: 'red' },
-  { type: 'joker' },
-];
-
-const LESSON_PREVIEWS: readonly PreviewItem[] = [
-  { title: 'Meet the tiles', detail: 'Suits, winds, dragons, flowers, and jokers.' },
-  { title: 'Pungs, kongs, quints & pairs', detail: 'The groups every hand is built from.' },
-  { title: 'Reading a card', detail: 'How each line on a card describes a hand.' },
-  { title: 'Jokers', detail: 'Where a joker can stand in, and where it can’t.' },
-  { title: 'The Charleston', detail: 'Passing tiles before the first discard.' },
-];
-
-const FIRST = LESSONS[0];
-
-/** The hero's button for lesson 1, matching where the player is with it. */
-function firstLessonAction(status: ReturnType<typeof lessonStatus>): string {
-  if (status === 'in-progress') return `Continue: ${FIRST.title}`;
-  if (status === 'complete') return `Play again: ${FIRST.title}`;
-  return `Start lesson 1: ${FIRST.title}`;
-}
-
-// The lesson path (M1.2) replaces this hero and preview list.
 export function LearnTab() {
-  const status = useLessonProgress((s) => lessonStatus(s, LESSON_ORDER, FIRST.id));
+  const completed = useLessonProgress((s) => s.completed);
+  const inProgress = useLessonProgress((s) => s.inProgress);
+  const nodes = useMemo(() => buildLessonPath({ completed, inProgress }, LESSONS), [completed, inProgress]);
+  const [celebrating, setCelebrating] = useState<string | null>(null);
+
+  // A lesson finished for the first time gets its celebration when the path
+  // comes back into view (not behind the lesson screen, where nobody sees it).
+  useFocusEffect(
+    useCallback(() => {
+      const id = useLessonProgress.getState().takeCelebration();
+      // Coming back later settles the path (and its headline) again.
+      setCelebrating(id);
+      if (!id) return;
+      hapticSuccess();
+      const path = buildLessonPath(useLessonProgress.getState(), LESSONS);
+      AccessibilityInfo.announceForAccessibility(celebrationAnnouncement(path, id));
+    }, []),
+  );
+
+  const headline = celebrating ? celebrationAnnouncement(nodes, celebrating) : pathHeadline(nodes);
   return (
     <TabScreen eyebrow="Learn" title="Your lesson path">
-      <FeltHero
-        tiles={HERO_TILES}
-        tilesLabel="A row of tiles: a bamboo, a dot, a character, a dragon, and a joker"
-        title="From your first tile to your first Mah Jongg"
-        body={`Short, hands-on lessons, a few minutes each. Lesson 1 takes about ${FIRST.minutes} minutes.`}
-        action={{ title: firstLessonAction(status), onPress: () => router.push({ pathname: '/lesson/[id]', params: { id: FIRST.id } }) }}
+      <View style={styles.intro}>
+        <Text color="textMuted">{headline}</Text>
+      </View>
+      <LessonPath
+        nodes={nodes}
+        celebrating={celebrating}
+        onOpen={(id) => router.push({ pathname: '/lesson/[id]', params: { id } })}
       />
-      <PreviewList heading="First lessons" items={LESSON_PREVIEWS} numbered />
     </TabScreen>
   );
 }
+
+const styles = StyleSheet.create({
+  intro: { marginTop: spacing.xs },
+});

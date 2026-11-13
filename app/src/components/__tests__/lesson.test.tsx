@@ -5,7 +5,6 @@ import { scoreLine } from '@/components/lesson/LessonComplete';
 import { LessonPlayer } from '@/components/lesson/LessonPlayer';
 import { LessonScreen } from '@/components/lesson/LessonScreen';
 import { fitTileWidth, tilesPerRow } from '@/components/lesson/LessonSteps';
-import { LearnTab } from '@/components/tabs/LearnTab';
 import { emptyProgress, type Lesson } from '@/game/lessons';
 import { useLessonProgress } from '@/state/lessonProgress';
 
@@ -176,18 +175,6 @@ describe('LessonScreen', () => {
     expect(screen.getByText('We couldn’t find that lesson')).toBeTruthy();
     await press('Back to lessons');
     expect(router().replace).toHaveBeenCalledWith('/');
-  });
-});
-
-describe('LearnTab', () => {
-  it('starts, continues, and replays lesson 1', async () => {
-    await render(<LearnTab />);
-    await press('Start lesson 1: Meet the tiles');
-    expect(router().push).toHaveBeenCalledWith({ pathname: '/lesson/[id]', params: { id: 'meet-the-tiles' } });
-    await act(() => useLessonProgress.getState().saveStep('meet-the-tiles', { stepIndex: 3, results: {} }));
-    expect(screen.getByRole('button', { name: 'Continue: Meet the tiles' })).toBeTruthy();
-    await act(() => useLessonProgress.getState().completeLesson('meet-the-tiles', { firstTry: 3, questions: 3 }));
-    expect(screen.getByRole('button', { name: 'Play again: Meet the tiles' })).toBeTruthy();
   });
 });
 

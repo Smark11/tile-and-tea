@@ -14,6 +14,11 @@ export function hapticTick() {
   if (enabled()) void Haptics.selectionAsync();
 }
 
+/** A small flourish: the lesson path celebrating a finished lesson. */
+export function hapticSuccess() {
+  if (enabled()) void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+}
+
 /** A slightly heavier tap: lifting a tile, a long press. */
 export function hapticLift() {
   if (enabled()) void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

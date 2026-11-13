@@ -5,7 +5,11 @@ import PlayRoute from '@/app/(tabs)/play';
 import ProgressRoute from '@/app/(tabs)/progress';
 import TrainRoute from '@/app/(tabs)/train';
 
-jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
+jest.mock('expo-router', () => ({
+  router: { push: jest.fn() },
+  useFocusEffect: (effect: () => void) =>
+    jest.requireActual<typeof import('react')>('react').useEffect(effect, [effect]),
+}));
 
 describe('tab screens', () => {
   it.each([
@@ -33,9 +37,9 @@ describe('tab screens', () => {
     expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
-  it('lists the first lessons in order', async () => {
+  it('lays out the first lessons in order on the path', async () => {
     await render(<LearnRoute />);
-    expect(screen.getByLabelText(/^1\. Meet the tiles\./)).toBeOnTheScreen();
-    expect(screen.getByLabelText(/^5\. The Charleston\./)).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Start lesson: Meet the tiles' })).toBeOnTheScreen();
+    expect(screen.getByLabelText(/^Lesson 5, The Charleston\./)).toBeOnTheScreen();
   });
 });

@@ -28,7 +28,7 @@ A line `## 🛑 CHECKPOINT` means: stop the loop, so the human can try the app b
 ## M1: Learn
 
 - [x] **M1.1 Lesson engine.** Data-driven lesson format (steps: text, tile illustration, interactive "tap the X" question). Progress persisted locally.
-- [ ] **M1.2 Lesson path UI.** Winding trail of lesson nodes with locked/available/complete states and celebratory completion animation.
+- [x] **M1.2 Lesson path UI.** Winding trail of lesson nodes with locked/available/complete states and celebratory completion animation.
 - [ ] **M1.3 Lessons 1–5 content.** (1) Meet the tiles (2) Pungs, kongs, quints & pairs (3) Reading a card (practice card) (4) Jokers (5) The Charleston. Each 3–6 minutes, interactive.
 
 ## M2: Rules engine
