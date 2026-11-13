@@ -70,7 +70,10 @@ for ((i = 1; i <= MAX_ITERS; i++)); do
 
   stamp="$(date +%Y%m%d-%H%M%S)"
   echo "▶ Iteration $i: $line"
-  out="$(build "Follow CLAUDE.md. Implement the next backlog task and verify it. Do not commit." "logs/$stamp-build.log")"
+  out="$(build "Follow CLAUDE.md. Implement the next backlog task and verify it (it may be partly done from an interrupted run; finish it). Do not commit." "logs/$stamp-build.log" || true)"
+  if grep -qiE "hit your .*limit|usage limit" <<<"$out"; then
+    echo "⏸  Claude usage limit reached. Partial work left uncommitted. Rerun this script after the reset."; exit 2
+  fi
   if grep -q "BLOCKED" <<<"$out"; then
     git add -A && git commit -qm "Blocked: $line" || true
     echo "⛔ Builder reported BLOCKED. See tasks/PROGRESS.md"; exit 1
@@ -82,6 +85,9 @@ for ((i = 1; i <= MAX_ITERS; i++)); do
     for r in "${REVIEWERS[@]}"; do review "$r" "$line" "logs/$stamp-review$round-$r.md" & done
     wait
 
+    if grep -qiE "hit your .*limit" logs/$stamp-review$round-*.md; then
+      echo "⏸  Claude usage limit reached during review. Work left uncommitted. Rerun after the reset."; exit 2
+    fi
     feedback=""
     for r in "${REVIEWERS[@]}"; do
       f="logs/$stamp-review$round-$r.md"
