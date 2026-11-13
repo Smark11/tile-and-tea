@@ -2,6 +2,7 @@ import { parseHand } from './notation';
 import { PRACTICE_CARD_2027 } from './practice-card-2027';
 import type { CardDef, PracticeCard } from './types';
 
+export * from './matcher';
 export * from './notation';
 export * from './types';
 export * from './variants';
