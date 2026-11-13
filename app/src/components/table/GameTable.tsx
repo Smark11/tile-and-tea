@@ -17,6 +17,7 @@ import {
   canDeclareMahJongg,
   exposureLabel,
   resultSummary,
+  type RestoredGame,
   SEAT_NAMES,
   swapOptions,
   tablePrompt,
@@ -27,7 +28,7 @@ import { feltTones, maxContentWidth, maxTableWidth, palette, paletteAlpha, radii
 
 import { CallActions, SwapActions } from './CallPanel';
 import { activeSeat, TableFelt, WindDisc } from './TableFelt';
-import { useTableGame, type CallTimer } from './useTableGame';
+import { useTableGame, type CallTimer, type TableProgress } from './useTableGame';
 
 const EMPTY: ReadonlySet<number> = new Set();
 
@@ -42,6 +43,10 @@ export type GameTableProps = {
   pace?: number;
   onLeave?: () => void;
   onNewGame?: () => void;
+  /** Sit back down to a saved game instead of dealing `seed`. */
+  resume?: RestoredGame;
+  /** Called after every move and rack rearrangement, so the game can be saved. */
+  onProgress?: (progress: TableProgress) => void;
   /** Fill the screen with its own scroller (default). Off to embed the table in another page. */
   scroll?: boolean;
 };
@@ -73,13 +78,25 @@ export function GameTable({
   pace,
   onLeave,
   onNewGame,
+  resume,
+  onProgress,
   scroll = true,
 }: GameTableProps) {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const callWindow = usePreferences((s) => s.callWindow);
-  const game = useTableGame({ seed, you, initial, autoplay, pace, level, callWindowMs: CALL_WINDOW_MS[callWindow] });
-  const { state, tiles, freshIds, selected, toggle, reorder, act, abandon, callTimer, hold, note } = game;
+  const game = useTableGame({
+    seed,
+    you,
+    initial,
+    autoplay,
+    pace,
+    level,
+    callWindowMs: CALL_WINDOW_MS[callWindow],
+    resume,
+    onProgress,
+  });
+  const { state, tiles, freshIds, selected, toggle, reorder, act, callTimer, hold, note } = game;
   const prompt = tablePrompt(state, you);
   const rule = selectionRule(state, you, prompt.yourMove);
   const player = state.players[you];
@@ -91,11 +108,6 @@ export function GameTable({
   const selectedIds = useMemo(() => new Set(selected), [selected]);
   const limit = rule?.limit ?? 0;
   const onToggle = useCallback((tile: TileModel) => toggle(tile, limit), [toggle, limit]);
-
-  const leave = () => {
-    abandon();
-    onLeave?.();
-  };
 
   // Fit the whole table on one screen: the felt gives up height (never the
   // rack) when the viewport is short. The header and the player's place
@@ -122,7 +134,16 @@ export function GameTable({
   const content = (
     <View style={[styles.column, { maxWidth: scroll ? maxTableWidth : maxContentWidth }]}>
       <View style={styles.header} onLayout={heightOf(setHeaderHeight)}>
-        <CloseButton label="Leave game" hint="This practice game isn’t saved." onPress={leave} onFelt />
+        <CloseButton
+          label="Leave game"
+          hint={
+            onProgress && state.phase.type !== 'ended'
+              ? 'Your game is saved. Resume it from the Play tab.'
+              : 'Back to where you were.'
+          }
+          onPress={() => onLeave?.()}
+          onFelt
+        />
         <View style={styles.headerTitle}>
           <Text variant="eyebrow" style={{ color: palette.gold }}>
             {`Practice table · ${LEVEL_INFO[level].name}`}

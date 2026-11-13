@@ -28,6 +28,9 @@ export type AnalyticsEvents = {
   skill_level_reached: { skill: string; level: string };
   /** `opponents` is the bot level, e.g. 'beginner'. */
   game_started: { opponents: string };
+  /** The player sat back down to their saved game. */
+  game_resumed: { opponents: string };
+  /** `abandoned`: a saved game the player replaced with a new deal (leaving the table keeps it saved). */
   game_finished: { opponents: string; result: GameResult };
   /** The player called a discard at the table. `claim` is 'pung' … 'sextet' or 'mah_jongg'; `won` is whether the tile went to them. */
   tile_called: { claim: CallClaim; won: boolean };
@@ -46,6 +49,7 @@ export const ANALYTICS_EVENT_NAMES = [
   'drill_answered',
   'skill_level_reached',
   'game_started',
+  'game_resumed',
   'game_finished',
   'tile_called',
   'joker_swapped',

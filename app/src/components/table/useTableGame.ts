@@ -4,7 +4,16 @@ import { track } from '@/analytics';
 import type { CallClaim } from '@/analytics/events';
 import { awaiting, gameReducer, newGame, type Claim, type GameAction, type GameState, type Seat } from '@/game/engine';
 import { DEFAULT_LEVEL, type BotLevel } from '@/game/bots';
-import { arrangeRack, autoAction, canCall, EXPOSURE_NAMES, lostCallNote, outcomeFor, SEAT_NAMES } from '@/game/table';
+import {
+  arrangeRack,
+  autoAction,
+  canCall,
+  EXPOSURE_NAMES,
+  lostCallNote,
+  outcomeFor,
+  SEAT_NAMES,
+  type RestoredGame,
+} from '@/game/table';
 import type { Tile } from '@/game/tiles';
 
 /** How long the table pauses before each automatic move, so play reads like people taking turns. */
@@ -33,6 +42,27 @@ export type CallTimer = {
   paused: boolean;
 };
 
+/** The note a resumed game opens with. */
+export const RESUMED_NOTE = 'Welcome back. Nothing has moved.';
+
+/** What a save needs from the table after each change. */
+export type TableProgress = {
+  /** Every move since the deal. */
+  actions: readonly GameAction[];
+  /** The player's rack arrangement, as tile ids. */
+  order: readonly number[];
+  ended: boolean;
+};
+
+/** The engine state, plus every move that led to it (what a save keeps). */
+type Table = { game: GameState; log: readonly GameAction[] };
+
+/** `gameReducer`, keeping each move the engine accepts. */
+function tableReducer(table: Table, action: GameAction): Table {
+  const game = gameReducer(table.game, action);
+  return game === table.game ? table : { game, log: [...table.log, action] };
+}
+
 export type TableGameOptions = {
   seed: number;
   you: Seat;
@@ -46,6 +76,10 @@ export type TableGameOptions = {
   level?: BotLevel;
   /** How long the player has to call a discard before it's let go; null waits as long as they like. */
   callWindowMs?: number | null;
+  /** Sit back down to a saved game instead of dealing (`seed` and `initial` are then ignored). */
+  resume?: RestoredGame;
+  /** Called after every move and rack rearrangement, so the game can be saved. */
+  onProgress?: (progress: TableProgress) => void;
 };
 
 /**
@@ -60,19 +94,23 @@ export function useTableGame({
   autoplay = true,
   level = DEFAULT_LEVEL,
   callWindowMs = null,
+  resume,
+  onProgress,
 }: TableGameOptions) {
-  const [state, dispatch] = useReducer(gameReducer, initial ?? seed, (start) =>
-    typeof start === 'number' ? newGame(start) : start,
-  );
+  const [{ game: state, log }, dispatch] = useReducer(tableReducer, null, () => ({
+    game: resume?.state ?? initial ?? newGame(seed),
+    log: resume?.saved.actions ?? [],
+  }));
   const [selected, setSelected] = useState<readonly number[]>([]);
 
   // The player's own arrangement of the rack. Each time the engine's rack
   // changes, arrivals join on the right and are marked fresh (so they drop in)
   // until the next change. A fresh deal arrives whole; a styleguide table doesn't.
   const rack = state.players[you].rack;
+  // A resumed game keeps the player's arrangement, and nothing drops in.
   const [arranged, setArranged] = useState(() => {
-    const { tiles, fresh } = arrangeRack([], rack);
-    return { rack, order: tiles.map((t) => t.id), fresh: initial ? [] : fresh };
+    const { tiles, fresh } = arrangeRack(resume?.saved.order ?? [], rack);
+    return { rack, order: tiles.map((t) => t.id), fresh: initial || resume ? [] : fresh };
   });
   if (arranged.rack !== rack) {
     const { tiles, fresh } = arrangeRack(arranged.order, rack);
@@ -97,24 +135,33 @@ export function useTableGame({
     return () => clearTimeout(timer);
   }, [next, pace]);
 
-  // Analytics: one start and one finish per game (a leave mid-game reports 'abandoned').
+  // Saving: after every move the engine accepts, and every rearrangement.
+  const progress = useRef(onProgress);
+  useEffect(() => {
+    progress.current = onProgress;
+  }, [onProgress]);
+  const ended = state.phase.type === 'ended';
+  useEffect(() => {
+    progress.current?.({ actions: log, order, ended });
+  }, [log, order, ended]);
+
+  // Analytics: one start (or resume) and one finish per sitting. Leaving
+  // mid-game isn't a finish, since the game is saved; replacing a saved
+  // game with a new deal reports it 'abandoned' (GameScreen does that).
   const started = useRef(false);
   const finished = useRef(false);
+  const resumed = resume !== undefined;
   useEffect(() => {
     if (started.current || !autoplay) return;
     started.current = true;
-    track('game_started', { opponents: level });
-  }, [autoplay, level]);
+    if (resumed) track('game_resumed', { opponents: level });
+    else track('game_started', { opponents: level });
+  }, [autoplay, level, resumed]);
   useEffect(() => {
     if (state.phase.type !== 'ended' || finished.current || !autoplay) return;
     finished.current = true;
     track('game_finished', { opponents: level, result: outcomeFor(state.phase.result, you) });
   }, [state.phase, you, autoplay, level]);
-  const abandon = useCallback(() => {
-    if (finished.current || !started.current) return;
-    finished.current = true;
-    track('game_finished', { opponents: level, result: 'abandoned' });
-  }, [level]);
 
   const reorder = useCallback(
     (next: Tile[]) => setArranged((a) => ({ ...a, order: next.map((t) => t.id), fresh: [] })),
@@ -155,7 +202,8 @@ export function useTableGame({
   // How the player's own calls turned out: analytics, and a word when another claim took the tile.
   // The player's claim is remembered from the moment they call, since the
   // same action can also settle the calls (when everyone else has answered).
-  const [note, setNote] = useState<string | null>(null);
+  // A resumed game opens with a word that nothing was lost, until the player's first move.
+  const [note, setNote] = useState<string | null>(resume ? RESUMED_NOTE : null);
   const pending = useRef<{ claim: Claim; at: GameState } | null>(null);
   useEffect(() => {
     const call = pending.current;
@@ -189,5 +237,5 @@ export function useTableGame({
     [autoplay],
   );
 
-  return { state, tiles, freshIds, selected, toggle, reorder, act, abandon, callTimer, hold, note };
+  return { state, tiles, freshIds, selected, toggle, reorder, act, callTimer, hold, note };
 }

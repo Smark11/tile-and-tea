@@ -23,6 +23,9 @@ const FIRST_LOAD_TIMEOUT_MS = 180_000; // first request triggers the web bundle 
 const SETTLE_MS = 1_000; // let entrance springs finish before capturing
 const MAX_SCROLL_FRAMES = 44; // extra below-the-fold captures per long screen (the styleguide is the longest)
 const WELCOME_ROUTE = '/welcome';
+/** The saved-game store's key (src/state/savedGame.ts) and a mid-game save for the resume states. */
+const SAVED_GAME_KEY = 'mjc.game';
+const SAVED_GAME_FIXTURE = JSON.parse(fs.readFileSync(path.join(APP_ROOT, 'scripts', 'fixtures', 'saved-game.json'), 'utf8'));
 
 /**
  * Screens whose answered state needs its own capture. The route loads with a
@@ -44,7 +47,10 @@ const ANSWERED = {
  * discard still open to a call, and West's turn.
  */
 const STATES = {
+  // `saved`: seed the fixture save first (scripts/fixtures/saved-game.json, pinned in saved.test.ts).
+  '/play': [{ name: 'resume', query: '', saved: true, ready: 'play-resume' }],
   '/game': [
+    { name: 'play-resumed', query: '', saved: true },
     { name: 'play-yours', query: 'demo=yours', tap: '[data-testid^="table-rack-tile-"]:not([aria-label*="Joker"])', waitFor: 'table-discard' },
     { name: 'play-open', query: 'demo=open' },
     { name: 'play-theirs', query: 'demo=theirs' },
@@ -142,9 +148,22 @@ async function capture(browser, baseUrl, route, scheme, device, timeout) {
       await captureScrollFrames(page, route, scheme, device, next + 1);
     }
 
+    let seeded = false;
     for (const state of STATES[route] ?? []) {
-      await page.goto(`${baseUrl}${route}?${state.query}`, { waitUntil: 'networkidle', timeout });
-      await page.getByTestId('table-prompt').waitFor({ timeout });
+      if (state.saved && !seeded) {
+        // Every later load in this context starts from the fixture save, made "4 minutes ago".
+        await context.addInitScript(
+          ([key, game]) =>
+            window.localStorage.setItem(
+              key,
+              JSON.stringify({ state: { game: { ...game, savedAt: Date.now() - 4 * 60_000 } }, version: 1 }),
+            ),
+          [SAVED_GAME_KEY, SAVED_GAME_FIXTURE],
+        );
+        seeded = true;
+      }
+      await page.goto(`${baseUrl}${route}${state.query ? `?${state.query}` : ''}`, { waitUntil: 'networkidle', timeout });
+      await page.getByTestId(state.ready ?? 'table-prompt').waitFor({ timeout });
       await page.evaluate(() => document.fonts.ready);
       await page.waitForTimeout(SETTLE_MS);
       if (state.tap) {
