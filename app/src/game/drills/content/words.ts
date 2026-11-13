@@ -36,9 +36,9 @@ export function groupName(kind: TileKind, count: number): string {
   return count === 1 ? tileName(kind) : `${GROUP_NAMES[count]} of ${plural(kind)}`;
 }
 
-/** "a, b and c" */
-export function list(items: readonly string[]): string {
-  return items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+/** "a, b and c" (or "a, b or c") */
+export function list(items: readonly string[], joiner: 'and' | 'or' = 'and'): string {
+  return items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} ${joiner} ${items[items.length - 1]}`;
 }
 
 /** One tile, spoken: "8 Bam", "Red Dragon", "Soap", "East". */
@@ -58,11 +58,11 @@ export function tilesWord(n: number): string {
   return `${n} ${n === 1 ? 'tile' : 'tiles'}`;
 }
 
-/** Where a hand sits on the card: "2468, hand 2". */
+/** Where a hand sits on the card: "2468 #2". No comma, so it reads cleanly mid-sentence. */
 export function handLabel(hand: Hand, card: PracticeCard = CURRENT_CARD): string {
   const section = card.sections.find((s) => s.id === hand.category);
   const n = section ? section.hands.indexOf(hand) + 1 : 0;
-  return `${section?.title ?? hand.category}, hand ${n}`;
+  return `${section?.title ?? hand.category} #${n}`;
 }
 
 export function handById(id: string, card: PracticeCard = CURRENT_CARD): Hand {

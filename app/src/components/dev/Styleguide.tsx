@@ -28,8 +28,18 @@ import { Rack } from '@/components/rack/Rack';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { Tile, type TileSize } from '@/components/tile/Tile';
-import { bestHand, currentAnswer, currentQuestion, nameTheHand, roundReducer, startRound, type DrillQuestion } from '@/game/drills';
+import {
+  bestHand,
+  charleston,
+  currentAnswer,
+  currentQuestion,
+  nameTheHand,
+  roundReducer,
+  startRound,
+  type DrillQuestion,
+} from '@/game/drills';
 import type { BestHandData } from '@/game/drills/content/bestHand';
+import type { CharlestonData } from '@/game/drills/content/charleston';
 import { createRng } from '@/game/rng';
 import {
   ALL_KINDS,
@@ -403,6 +413,32 @@ function BestHandDemo() {
   );
 }
 
+function CharlestonDemo() {
+  // A rack with Jokers, so the locked tiles show, where the first three free tiles cost a tile.
+  const drill = { ...charleston, questionsPerRound: 1, generate: () => charleston.generate(62839) };
+  const reduce = roundReducer(drill);
+  const start = startRound(drill, 1);
+  const question = currentQuestion(start) as DrillQuestion<CharlestonData>;
+  const free = question.data.rack.flatMap((k, i) => (k.type === 'joker' ? [] : [i]));
+  // The first three free tiles: on most racks a pass that costs the closest hand.
+  let picked = start;
+  for (const i of free.slice(0, 3)) picked = reduce(picked, { type: 'tap', index: i });
+  const states = [
+    { label: 'Two tiles picked', state: reduce(reduce(start, { type: 'tap', index: free[0] }), { type: 'tap', index: free[1] }) },
+    { label: 'After a pass', state: reduce(picked, { type: 'check' }) },
+  ];
+  return (
+    <View style={styles.lessonDemo}>
+      {states.map(({ label, state }) => (
+        <View key={label} style={styles.lessonState}>
+          <Text variant="caption">{label}</Text>
+          <DrillQuestionView question={currentQuestion(state)} selected={state.selected} answer={currentAnswer(state)} onTap={() => {}} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export function Styleguide() {
   const { colors, scheme, shadows } = useTheme();
   const semantic = Object.entries(colors) as [keyof ThemeColors, string][];
@@ -439,6 +475,10 @@ export function Styleguide() {
 
       <Section title="Best hand drill">
         <BestHandDemo />
+      </Section>
+
+      <Section title="Charleston drill">
+        <CharlestonDemo />
       </Section>
 
       <Section title="Brand palette">

@@ -14,7 +14,6 @@ const HERO_TILES: readonly TileKind[] = [
 ];
 
 const COMING: readonly PreviewItem[] = [
-  { title: 'Charleston', detail: 'Choose three tiles to pass, and see what you kept.', tile: { type: 'wind', wind: 'E' } },
   { title: 'Discards', detail: 'Decide what to let go, and what’s safe to throw.', tile: { type: 'suited', suit: 'crak', rank: 7 } },
 ];
 

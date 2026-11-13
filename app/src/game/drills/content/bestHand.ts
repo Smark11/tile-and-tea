@@ -129,7 +129,7 @@ export function feltGroups(sizes: readonly number[]): number[] {
 }
 
 /** The rack in suit groups, as a player reads it: the sizes for the felt, and the spoken caption. */
-function rackGroups(rack: readonly TileKind[]): { groups: number[]; caption: string } {
+export function rackGroups(rack: readonly TileKind[]): { groups: number[]; caption: string } {
   const present = FAMILIES.map((family) => ({ family, tiles: rack.filter((k) => familyOf(k) === family) })).filter(
     (f) => f.tiles.length > 0,
   );

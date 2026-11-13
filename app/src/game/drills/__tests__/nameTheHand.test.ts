@@ -119,7 +119,7 @@ describe('explanations', () => {
   it('names the suits, the shifted numbers, and where the Jokers stand in', () => {
     const evens1 = [...n(2, F), ...n(3, B(2)), ...n(2, B(4)), J, ...n(3, D(6)), ...n(3, D(8))];
     expect(explainMatch(hand('evens-1'), evens1)).toBe(
-      'These tiles make 2468, hand 1: the first suit is Bams and the second suit is Dots. ' +
+      'These tiles make 2468 #1: the first suit is Bams and the second suit is Dots. ' +
         'The Joker stands in for real tiles: one in the pung of 4 Bams. A Joker can fill a pung, kong or quint, never a single or a pair.',
     );
   });
@@ -133,27 +133,27 @@ describe('explanations', () => {
     // evens-3: 4444 DDD 8888 DDD, each Dragon with its suit.
     const evens3 = [...n(4, C(4)), ...n(3, R), ...n(4, D(8)), ...n(2, S), J];
     expect(explainMatch(hand('evens-3'), evens3)).toBe(
-      'These tiles make 2468, hand 3: the first suit is Craks and the second suit is Dots. ' +
+      'These tiles make 2468 #3: the first suit is Craks and the second suit is Dots. ' +
         'Each Dragon goes with its own suit: Red Dragons with Craks and Soaps with Dots. ' +
         'The Joker stands in for real tiles: one in the pung of Soaps. A Joker can fill a pung, kong or quint, never a single or a pair.',
     );
     // pairs-2: 11 33 55 77 99 in one suit, then the Dragons of the other two suits.
     const pairs2 = [...[1, 3, 5, 7, 9].flatMap((r) => n(2, B(r))), ...n(2, R), ...n(2, S)];
     expect(explainMatch(hand('pairs-2'), pairs2)).toBe(
-      'These tiles make Singles & Pairs, hand 2: its suit is Bams. ' +
+      'These tiles make Singles & Pairs #2: its suit is Bams. ' +
         'The Dragons belong to the suits the numbers don’t use: Red Dragons with Craks and Soaps with Dots.',
     );
     // honors-2: NNN SSS DDDD DDDD, any two Dragons.
     const honors2 = [...n(3, N), ...n(3, So), ...n(4, G), ...n(4, R)];
     expect(explainMatch(hand('honors-2'), honors2)).toBe(
-      'These tiles make Winds & Dragons, hand 2. With no numbers to match, the Dragons are yours to choose: here, Green Dragons and Red Dragons.',
+      'These tiles make Winds & Dragons #2. With no numbers to match, the Dragons are yours to choose: here, Green Dragons and Red Dragons.',
     );
   });
 
   it('says how far a missed line is, and what it is short of', () => {
     const evens1 = [...n(2, F), ...n(3, C(2)), ...n(3, C(4)), ...n(3, D(6)), ...n(3, D(8))];
     expect(explainMiss(hand('evens-2'), evens1)).toMatch(
-      /^Even at its closest, 2468, hand 2 is \d+ tiles away from these tiles: it’s short of the [^.]+\.$/,
+      /^Even at its closest, 2468 #2 is \d+ tiles away from these tiles: it’s short of the [^.]+\.$/,
     );
   });
 });

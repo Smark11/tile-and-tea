@@ -21,8 +21,44 @@ const PORT = Number(process.env.SCREENSHOT_PORT ?? 8099);
 const SCHEMES = /** @type {const} */ (['light', 'dark']);
 const FIRST_LOAD_TIMEOUT_MS = 180_000; // first request triggers the web bundle build
 const SETTLE_MS = 1_000; // let entrance springs finish before capturing
-const MAX_SCROLL_FRAMES = 20; // extra below-the-fold captures per long screen (the styleguide is the longest)
+const MAX_SCROLL_FRAMES = 26; // extra below-the-fold captures per long screen (the styleguide is the longest)
 const WELCOME_ROUTE = '/welcome';
+
+/**
+ * Screens whose answered state needs its own capture. The route loads with a
+ * fixed seed, the frames above are taken unanswered, then the script taps the
+ * picks and Check and pages through the result as the following frames.
+ * charleston.test.ts pins this fixture: a miss that shares one tile with the
+ * coach's pass, on a rack with a Joker.
+ */
+const ANSWERED = {
+  '/drill/charleston': { seed: 2, picks: [0, 1, 2] },
+};
+
+/** Pages through the tallest scroller from the top, capturing frames from `first` on; returns the next frame number. */
+async function captureScrollFrames(page, route, scheme, device, first) {
+  let frame = first;
+  for (; frame <= MAX_SCROLL_FRAMES; frame++) {
+    // RN-web ScrollViews scroll inside a div, so fullPage can't see below the
+    // fold. Page through the tallest scroller one viewport at a time instead.
+    const moved = await page.evaluate(() => {
+      const scrollers = [...document.querySelectorAll('div')].filter(
+        (el) => el.scrollHeight > el.clientHeight + 1 && getComputedStyle(el).overflowY !== 'visible',
+      );
+      const el = scrollers.sort((a, b) => b.scrollHeight - a.scrollHeight)[0];
+      if (!el) return false;
+      const before = el.scrollTop;
+      el.scrollTop = before + el.clientHeight * 0.9;
+      return el.scrollTop > before;
+    });
+    if (!moved) break;
+    await page.waitForTimeout(250);
+    const frameFile = path.join(OUT_DIR, screenshotFile(route, scheme, device, frame));
+    await page.screenshot({ path: frameFile });
+    log(`✓ ${path.relative(APP_ROOT, frameFile)}`);
+  }
+  return frame;
+}
 
 function log(msg) {
   console.log(`[screenshots] ${msg}`);
@@ -51,8 +87,10 @@ async function capture(browser, baseUrl, route, scheme, device, timeout) {
   page.on('console', (msg) => {
     if (msg.type() === 'error') errors.push(msg.text());
   });
+  const answered = ANSWERED[route];
+  const url = baseUrl + route + (answered ? `?seed=${answered.seed}` : '');
   try {
-    const res = await page.goto(baseUrl + route, { waitUntil: 'networkidle', timeout });
+    const res = await page.goto(url, { waitUntil: 'networkidle', timeout });
     if (res && !res.ok()) errors.push(`HTTP ${res.status()}`);
     await page.waitForFunction(() => document.getElementById('root')?.childElementCount, null, {
       timeout,
@@ -63,24 +101,26 @@ async function capture(browser, baseUrl, route, scheme, device, timeout) {
     await page.screenshot({ path: file });
     log(`✓ ${path.relative(APP_ROOT, file)}`);
 
-    // RN-web ScrollViews scroll inside a div, so fullPage can't see below the
-    // fold. Page through the tallest scroller one viewport at a time instead.
-    for (let frame = 2; frame <= MAX_SCROLL_FRAMES; frame++) {
-      const moved = await page.evaluate(() => {
-        const scrollers = [...document.querySelectorAll('div')].filter(
-          (el) => el.scrollHeight > el.clientHeight + 1 && getComputedStyle(el).overflowY !== 'visible',
-        );
-        const el = scrollers.sort((a, b) => b.scrollHeight - a.scrollHeight)[0];
-        if (!el) return false;
-        const before = el.scrollTop;
-        el.scrollTop = before + el.clientHeight * 0.9;
-        return el.scrollTop > before;
+    const next = await captureScrollFrames(page, route, scheme, device, 2);
+
+    if (answered) {
+      await page.evaluate(() => {
+        for (const el of document.querySelectorAll('div')) el.scrollTop = 0;
       });
-      if (!moved) break;
+      for (const i of answered.picks) await page.getByTestId(`drill-choice-${i}`).click();
+      await page.getByTestId('drill-primary').click();
+      await page.getByTestId('drill-tile-key').waitFor({ timeout });
+      await page.waitForTimeout(SETTLE_MS);
+      // The player scrolls to the feedback after Check; start from the top so
+      // the frames show the whole felt (the picks and stars) before the feedback.
+      await page.evaluate(() => {
+        for (const el of document.querySelectorAll('div')) el.scrollTop = 0;
+      });
       await page.waitForTimeout(250);
-      const frameFile = path.join(OUT_DIR, screenshotFile(route, scheme, device, frame));
-      await page.screenshot({ path: frameFile });
-      log(`✓ ${path.relative(APP_ROOT, frameFile)}`);
+      const file = path.join(OUT_DIR, screenshotFile(route, scheme, device, next));
+      await page.screenshot({ path: file });
+      log(`✓ ${path.relative(APP_ROOT, file)} (answered)`);
+      await captureScrollFrames(page, route, scheme, device, next + 1);
     }
   } finally {
     await context.close();

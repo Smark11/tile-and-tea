@@ -100,6 +100,8 @@ export function roundReducer(drill: AnyDrill) {
         if (!Number.isInteger(action.index) || action.index < 0 || action.index >= question.choices.length) {
           return state;
         }
+        const choice = question.choices[action.index];
+        if (choice.kind === 'tile' && choice.locked) return state;
         if (question.picks === 1) return answer(drill, state, [action.index]);
         if (state.selected.includes(action.index)) {
           return { ...state, selected: state.selected.filter((i) => i !== action.index) };

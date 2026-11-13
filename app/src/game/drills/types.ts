@@ -16,11 +16,16 @@ export type SkillId = 'card-reading' | 'hand-choice' | 'charleston' | 'discards'
 
 /** One thing the player can pick: a tile, or a line from the card. */
 export type DrillChoice =
-  | { readonly kind: 'tile'; readonly tile: TileKind }
+  | {
+      readonly kind: 'tile';
+      readonly tile: TileKind;
+      /** Shown but can't be picked, and why (e.g. a Joker in a pass). */
+      readonly locked?: string;
+    }
   | {
       readonly kind: 'line';
       readonly line: CardLine;
-      /** Where the line sits on the card, e.g. "Like Numbers, hand 2". Read before the line itself. */
+      /** Where the line sits on the card, e.g. "Like Numbers #2". Read before the line itself. */
       readonly label: string;
     };
 
@@ -44,6 +49,8 @@ export type DrillQuestion<Data = unknown> = {
   readonly instruction?: string;
   readonly scene: DrillScene;
   readonly choices: readonly DrillChoice[];
+  /** Tile choices laid out in groups of these sizes (suit groups on a rack), in order. */
+  readonly choiceGroups?: readonly number[];
   /** How many choices make an answer: 1 answers on tap; more need a Check. */
   readonly picks: number;
   /** Whatever the evaluator needs. Plain JSON, so a round can be saved. */
@@ -67,6 +74,8 @@ export type DrillEvaluation = {
   readonly title: string;
   /** The coach's reasoning: why the best answer is best, and what the pick missed. */
   readonly explanation: string;
+  /** The card line the explanation steers toward, shown with it. */
+  readonly target?: { readonly label: string; readonly line: CardLine };
 };
 
 export type Drill<Data = unknown> = {

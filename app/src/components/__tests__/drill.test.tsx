@@ -3,9 +3,22 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { DrillPlayer } from '@/components/drill/DrillPlayer';
 import { DrillScreen, parseSeed } from '@/components/drill/DrillScreen';
-import { evaluationMessage, roundLine, roundSummary } from '@/components/drill/DrillViews';
+import { DrillQuestionView, evaluationMessage, roundLine, roundSummary } from '@/components/drill/DrillViews';
 import { TrainTab } from '@/components/tabs/TrainTab';
-import { bestHand, localDay, nameTheHand, NO_USAGE, startRound, type Drill } from '@/game/drills';
+import {
+  bestHand,
+  charleston,
+  currentAnswer,
+  currentQuestion,
+  localDay,
+  nameTheHand,
+  NO_USAGE,
+  roundReducer,
+  startRound,
+  type Drill,
+  type DrillQuestion,
+} from '@/game/drills';
+import type { CharlestonData } from '@/game/drills/content/charleston';
 import { handLabel } from '@/game/drills/content/words';
 import { CURRENT_CARD } from '@/game/card';
 import { useDrillProgress } from '@/state/drillProgress';
@@ -177,8 +190,46 @@ describe('TrainTab', () => {
     expect(router().push).toHaveBeenCalledTimes(2);
     await fireEvent.press(screen.getByRole('button', { name: /^Best hand\./ }));
     expect(router().push).toHaveBeenLastCalledWith('/drill/best-hand');
+    await fireEvent.press(screen.getByRole('button', { name: /^Charleston\./ }));
+    expect(router().push).toHaveBeenLastCalledWith('/drill/charleston');
     // The drills still on the way aren't tappable.
-    expect(screen.queryByRole('button', { name: /Charleston/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Discards/ })).toBeNull();
+  });
+});
+
+describe('Charleston question', () => {
+  const drill = { ...charleston, questionsPerRound: 1, generate: () => charleston.generate(62839) };
+  const question = charleston.generate(62839) as DrillQuestion<CharlestonData>;
+  const rack = question.data.rack;
+  const free = rack.flatMap((k, i) => (k.type === 'joker' ? [] : [i]));
+
+  it('locks Jokers, explains why, and shows the hand to aim for after a pass', async () => {
+    const reduce = roundReducer(drill);
+    let state = startRound(drill, 1);
+    const answer = () => currentAnswer(state);
+    const view = () => (
+      <DrillQuestionView question={currentQuestion(state)} selected={state.selected} answer={answer()} onTap={() => {}} />
+    );
+    await render(view());
+    const joker = rack.findIndex((k) => k.type === 'joker');
+    expect(screen.getByTestId(`drill-choice-${joker}`).props.accessibilityState).toMatchObject({ disabled: true });
+    expect(screen.getByTestId(`drill-choice-${joker}`).props.accessibilityHint).toBe('Jokers are never passed.');
+    expect(screen.getByText('Pick 3 tiles to pass, then Check.')).toBeTruthy();
+    expect(screen.queryByTestId('drill-target')).toBeNull();
+
+    for (const i of free.slice(0, 3)) state = reduce(state, { type: 'tap', index: i });
+    state = reduce(state, { type: 'check' });
+    await render(view());
+    // The player's tiles stay raised; the coach's pass is starred; the target line is printed.
+    for (const i of free.slice(0, 3)) {
+      expect(screen.getByTestId(`drill-choice-${i}`).props.accessibilityState).toMatchObject({ selected: true });
+    }
+    for (const i of answer()!.evaluation.best) {
+      expect(screen.getByTestId(`drill-choice-${i}`).props.accessibilityLabel).toMatch(/, suggested$/);
+    }
+    expect(screen.getByTestId('drill-tile-key')).toBeTruthy();
+    expect(screen.getByTestId('drill-target')).toBeTruthy();
+    expect(screen.getByText(answer()!.evaluation.target!.label)).toBeTruthy();
   });
 });
 

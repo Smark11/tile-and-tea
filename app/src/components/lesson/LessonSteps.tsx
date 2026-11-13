@@ -70,6 +70,7 @@ export type SpreadTile = {
   hint?: boolean;
   disabled?: boolean;
   onPress?: () => void;
+  accessibilityHint?: string;
   testID?: string;
 };
 
@@ -123,6 +124,7 @@ export function TileSpread({ tiles, groups }: { tiles: readonly SpreadTile[]; gr
                   hint={t.hint}
                   disabled={t.disabled}
                   onPress={t.onPress}
+                  accessibilityHint={t.accessibilityHint}
                   testID={t.testID}
                 />
               ))}

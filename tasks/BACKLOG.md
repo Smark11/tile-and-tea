@@ -44,7 +44,7 @@ A line `## 🛑 CHECKPOINT` means: stop the loop, so the human can try the app b
 
 - [x] **M3.1 Drill framework.** Drill = generator (seeded) + question UI + evaluator + explanation. Daily free limit hook (not enforced yet).
 - [x] **M3.2 "Best Hand" drill.** Show a rack → pick the top hand to pursue → explain using hand distance.
-- [ ] **M3.3 Charleston drill.** Choose 3 tiles to pass → advisor scores it → explanation.
+- [x] **M3.3 Charleston drill.** Choose 3 tiles to pass → advisor scores it → explanation.
 - [ ] **M3.4 Discard drill.** Mid-game snapshot → choose a discard → explanation incl. dead tiles & danger.
 - [ ] **M3.5 Skill ratings.** Per-skill Elo-like rating, updated by drills; shown on Progress tab with animated meters.
 
@@ -65,7 +65,7 @@ A line `## 🛑 CHECKPOINT` means: stop the loop, so the human can try the app b
 
 ## M6: Web launch
 
-- [ ] **M6.1 Polish pass.** Sound (off by default), Reduce Motion, text scaling, screen-reader audit (VoiceOver/NVDA on web), large-tile mode, loading states, empty states, a 404 page. Lesson text-only steps look plain: give every lesson step a tile illustration or animated tile moment (e.g. a joker tile flipping in on "Eight wild tiles"). Lighthouse on the exported site: Accessibility ≥ 95, Performance ≥ 85 (mobile).
+- [ ] **M6.1 Polish pass.** Sound (off by default), Reduce Motion, text scaling, screen-reader audit (VoiceOver/NVDA on web), large-tile mode, loading states, empty states, a 404 page. Lesson text-only steps look plain: give every lesson step a tile illustration or animated tile moment (e.g. a joker tile flipping in on "Eight wild tiles"). Also the M3.3 review minors listed in PROGRESS.md. Lighthouse on the exported site: Accessibility ≥ 95, Performance ≥ 85 (mobile).
 - [ ] **M6.2 Home / landing experience.** First-time web visitors arriving at `/` see a gorgeous one-screen intro (what it is, "Start learning free", a live interactive tile moment) before onboarding. Returning users go straight to their path. Track `landing_cta_clicked`.
 - [ ] **M6.3 Sharing hooks.** After a lesson, drill streak, or game, offer "Share" (Web Share API with a copy-link fallback) with a nice share card. A "Puzzle of the day" deep link (`/puzzle/<date>`) that works without onboarding. These are the organic growth loops.
 - [ ] **M6.4 Deploy config.** `docs/DEPLOY.md` with exact steps for EAS Hosting (`npx eas-cli deploy`) plus a fallback for any static host (Netlify/Cloudflare Pages: build command + `dist/` + SPA/deep-link notes). Include the PostHog env setup. The human runs the deploy with their own accounts.

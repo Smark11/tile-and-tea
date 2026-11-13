@@ -58,6 +58,8 @@ export type TileProps = {
   /** Extra screen-reader actions, e.g. "Move left" on a rack tile. */
   accessibilityActions?: readonly AccessibilityActionInfo[];
   onAccessibilityAction?: (event: AccessibilityActionEvent) => void;
+  /** Read after the name, e.g. why a disabled tile can't be picked. */
+  accessibilityHint?: string;
   style?: StyleProp<ViewStyle>;
   testID?: string;
 };
@@ -100,6 +102,7 @@ export const Tile = memo(function Tile({
   onLongPress,
   accessibilityActions,
   onAccessibilityAction,
+  accessibilityHint,
   style,
   testID,
 }: TileProps) {
@@ -185,6 +188,7 @@ export const Tile = memo(function Tile({
       accessible
       accessibilityRole={interactive ? 'button' : 'image'}
       accessibilityLabel={tileAccessibilityLabel(kind, hint)}
+      accessibilityHint={accessibilityHint}
       accessibilityState={interactive ? { selected, disabled } : undefined}
       accessibilityActions={accessibilityActions}
       onAccessibilityAction={onAccessibilityAction}
@@ -211,21 +215,6 @@ export const Tile = memo(function Tile({
         ]}
       />
       <Animated.View style={[{ width, height }, disabled && styles.disabled, bodyStyle]}>
-        {hint && (
-          <Animated.View
-            testID={testID && `${testID}-hint-ring`}
-            pointerEvents="none"
-            style={[
-              styles.ring,
-              {
-                borderRadius: radius + 4,
-                borderColor: tileInks.hintGlow,
-                boxShadow: `0px 0px 14px ${tileInks.hintGlow}`,
-              },
-              glowStyle,
-            ]}
-          />
-        )}
         <View
           style={{
             borderRadius: radius,
@@ -234,15 +223,33 @@ export const Tile = memo(function Tile({
         >
           <TileFace kind={kind} copy={copy} width={width} height={height} />
         </View>
-        {selected && (
-          <View
+        {hint && (
+          <Animated.View
+            testID={testID && `${testID}-hint-ring`}
             pointerEvents="none"
             style={[
               styles.ring,
               {
-                borderRadius: radius + 4,
+                borderRadius: radius,
+                borderColor: tileInks.hintGlow,
+                boxShadow: `0px 0px 12px ${tileInks.hintGlow}`,
+              },
+              glowStyle,
+            ]}
+          />
+        )}
+        {selected && (
+          <View
+            testID={testID && `${testID}-select-ring`}
+            pointerEvents="none"
+            style={[
+              styles.selectRing,
+              // Inside the coach's ring when a tile carries both.
+              hint && styles.selectRingInner,
+              {
+                borderRadius: hint ? radius - RING_WIDTH : radius,
                 borderColor: tileInks.selectRing,
-                boxShadow: `0px 0px 10px rgba(201, 162, 75, 0.55)`,
+                boxShadow: `inset 0px 0px 6px rgba(201, 162, 75, 0.6), 0px 0px 8px rgba(201, 162, 75, 0.45)`,
               },
             ]}
           />
@@ -257,16 +264,30 @@ export const Tile = memo(function Tile({
   );
 });
 
+const RING_WIDTH = 2.5;
+
+// Both rings sit on the tile itself, never past its edge: tiles in a set
+// nearly touch, and rings drawn outside would run into their neighbours'.
 const styles = StyleSheet.create({
   ring: {
     position: 'absolute',
-    top: -4,
-    left: -4,
-    right: -4,
-    bottom: -4,
-    borderWidth: 2.5,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderWidth: RING_WIDTH,
     borderCurve: 'continuous',
   },
+  selectRing: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderWidth: 3,
+    borderCurve: 'continuous',
+  },
+  selectRingInner: { top: RING_WIDTH, left: RING_WIDTH, right: RING_WIDTH, bottom: RING_WIDTH },
   disabled: { opacity: 0.4 },
   badgeAnchor: { position: 'absolute' },
   badge: {

@@ -16,7 +16,7 @@ import { FeedbackPanel, TileDisplayView, TileSpread } from '@/components/lesson/
 import { Text } from '@/components/Text';
 import type { AnsweredQuestion, DrillChoice, DrillEvaluation, DrillQuestion, RoundScore, Verdict } from '@/game/drills';
 import type { FeedbackMessage } from '@/game/lessons';
-import { cardInks, fontFamilies, radii, spacing, useTheme } from '@/theme';
+import { cardInks, fontFamilies, radii, spacing, tileInks, useTheme } from '@/theme';
 
 // The pieces of a drill page. Like the lesson steps they're presentational, so
 // the styleguide can show every state on its own.
@@ -121,6 +121,44 @@ export function LineChoice({ choice, state, onPress, testID }: LineChoiceProps) 
   );
 }
 
+/** Why some tiles can't be picked (read per tile by screen readers, shown once on the felt). */
+function lockedReason(question: DrillQuestion): string | undefined {
+  for (const c of question.choices) if (c.kind === 'tile' && c.locked) return c.locked;
+  return undefined;
+}
+
+/**
+ * What the marks on an answered multi-pick hand mean. Each entry names every
+ * cue (color is never the only one) and wraps as a whole, never mid-phrase.
+ */
+function TileKey() {
+  return (
+    <View
+      style={styles.key}
+      testID="drill-tile-key"
+      accessible
+      accessibilityLabel="Gold ring and raised: your pass. Green star: the coach’s pass."
+    >
+      <View style={styles.keyItem}>
+        <View style={[styles.keySwatch, { borderColor: tileInks.selectRing }]} />
+        <Text variant="callout" color="onFeltMuted">
+          Gold & raised: your pass
+        </Text>
+      </View>
+      <View style={styles.keyItem}>
+        <View style={[styles.keyStar, { backgroundColor: tileInks.green }]}>
+          <Svg width={12} height={12} viewBox="0 0 24 24">
+            <Path d={STAR} fill="#FFFFFF" />
+          </Svg>
+        </View>
+        <Text variant="callout" color="onFeltMuted">
+          Star: the coach’s pass
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 type DrillQuestionViewProps = {
   question: DrillQuestion;
   selected: readonly number[];
@@ -136,6 +174,7 @@ export function DrillQuestionView({ question, selected, answer, onTap }: DrillQu
   else if (lines) instruction = 'Tap the line these tiles make.';
   else instruction = 'Tap a tile to answer.';
   if (question.instruction) instruction = question.instruction;
+  const locked = lockedReason(question);
 
   return (
     <View style={styles.question}>
@@ -143,23 +182,42 @@ export function DrillQuestionView({ question, selected, answer, onTap }: DrillQu
       {!answer && <Text color="textMuted">{instruction}</Text>}
       {question.scene.card && <CardLineView line={question.scene.card} testID="drill-card-line" />}
       <Card tone="felt" elevation="high" style={styles.mat}>
-        <TileDisplayView display={question.scene} />
+        {question.scene.tiles.length > 0 && <TileDisplayView display={question.scene} />}
         {!lines && (
           <TileSpread
+            groups={question.choiceGroups}
             tiles={question.choices.map((choice, i) => {
               const state = choiceState(i, selected, answer);
+              const lockedTile = choice.kind === 'tile' ? choice.locked : undefined;
+              // After a multi-pick answer, the player's own tiles stay raised beside the coach's stars.
+              const mine = state === 'selected' || (answer !== null && answer.picked.includes(i));
               return {
                 kind: choice.kind === 'tile' ? choice.tile : { type: 'joker' },
-                selected: state === 'selected' || state === 'picked',
+                selected: mine,
                 hint: state === 'best',
-                disabled: state === 'passed',
+                disabled: state === 'passed' || !!lockedTile,
+                accessibilityHint: lockedTile,
                 onPress: () => onTap(i),
                 testID: `drill-choice-${i}`,
               };
             })}
           />
         )}
+        {!lines && !answer && locked && (
+          <Text variant="callout" color="onFeltMuted" align="center" accessibilityElementsHidden importantForAccessibility="no">
+            {locked}
+          </Text>
+        )}
+        {!lines && answer && question.picks > 1 && (
+          <TileKey />
+        )}
       </Card>
+      {answer?.evaluation.target && (
+        <View style={styles.target} testID="drill-target">
+          <Text variant="eyebrow">{answer.evaluation.target.label}</Text>
+          <CardLineView line={answer.evaluation.target.line} />
+        </View>
+      )}
       {lines && (
         <View style={styles.lines} accessibilityRole="list">
           {question.choices.map((choice, i) =>
@@ -267,6 +325,11 @@ const styles = StyleSheet.create({
   question: { gap: spacing.lg },
   mat: { paddingVertical: spacing.xl, paddingHorizontal: spacing.lg, gap: spacing.lg },
   lines: { gap: spacing.md },
+  target: { gap: spacing.sm },
+  key: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', columnGap: spacing.lg, rowGap: spacing.xs },
+  keyItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  keySwatch: { width: 14, height: 18, borderRadius: 3, borderWidth: 2.5 },
+  keyStar: { width: 18, height: 18, borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center' },
   slip: {
     backgroundColor: cardInks.paper,
     borderRadius: radii.md,
