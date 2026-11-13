@@ -1,24 +1,13 @@
-import type { TileKind } from '../../tiles';
 import type { Lesson } from '../types';
 
-const bam = (rank: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9): TileKind => ({ type: 'suited', suit: 'bam', rank });
-const crak = (rank: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9): TileKind => ({ type: 'suited', suit: 'crak', rank });
-const dot = (rank: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9): TileKind => ({ type: 'suited', suit: 'dot', rank });
-const RED: TileKind = { type: 'dragon', dragon: 'red' };
-const GREEN: TileKind = { type: 'dragon', dragon: 'green' };
-const SOAP: TileKind = { type: 'dragon', dragon: 'white' };
-const FLOWER: TileKind = { type: 'flower' };
-const JOKER: TileKind = { type: 'joker' };
+import { bam, crak, dot, EAST, FLOWER, GREEN, JOKER, NORTH, RED, SOAP, SOUTH, WEST } from './tiles';
 
-/**
- * Lesson 1, first cut: what's in the box. M1.3 grows it into the full
- * 3–6 minute lesson; this version proves the lesson engine end to end.
- */
+/** Lesson 1: every kind of tile in an American set, and how many there are. */
 export const meetTheTiles: Lesson = {
   id: 'meet-the-tiles',
   title: 'Meet the tiles',
   summary: 'Suits, winds, dragons, flowers, and jokers.',
-  minutes: 3,
+  minutes: 4,
   steps: [
     {
       kind: 'text',
@@ -46,6 +35,23 @@ export const meetTheTiles: Lesson = {
     },
     {
       kind: 'tiles',
+      id: 'craks',
+      title: 'Reading a Crak',
+      body:
+        'Each Crak shows a Chinese numeral above the red character 萬. You don’t need to read Chinese: the number is also printed in the corner.\n\nThe red character is the same on every Crak, so it tells you the suit at a glance.',
+      tiles: [crak(1), crak(5), crak(9)],
+      caption: '1 Crak, 5 Crak, 9 Crak',
+    },
+    {
+      kind: 'tap',
+      id: 'find-the-crak',
+      prompt: 'Tap the Crak.',
+      choices: [{ tile: dot(2) }, { tile: crak(7), correct: true }, { tile: bam(4) }, { tile: dot(9) }],
+      hint: 'Look for the red character that every Crak shares.',
+      explanation: 'That’s the 7 Crak. The red 萬 marks every Crak, and the 7 is in the corner.',
+    },
+    {
+      kind: 'tiles',
       id: 'one-bam',
       title: 'The 1 Bam is a bird',
       body:
@@ -58,17 +64,25 @@ export const meetTheTiles: Lesson = {
       id: 'winds-and-dragons',
       title: 'Winds and Dragons',
       body:
-        'There are four Winds: North, East, West, and South. There are three Dragons: Red, Green, and White. Everyone calls the White Dragon “Soap.” There are four of each.',
-      tiles: [
-        { type: 'wind', wind: 'N' },
-        { type: 'wind', wind: 'E' },
-        { type: 'wind', wind: 'W' },
-        { type: 'wind', wind: 'S' },
-        RED,
-        GREEN,
-        SOAP,
-      ],
+        'There are four Winds: North, East, West, and South. Each one has its letter in the corner. There are three Dragons: Red, Green, and White. Everyone calls the White Dragon “Soap.” There are four of each.',
+      tiles: [NORTH, EAST, WEST, SOUTH, RED, GREEN, SOAP],
+      groups: [4, 3],
       caption: 'North, East, West, South, Red Dragon, Green Dragon, Soap',
+    },
+    {
+      kind: 'tap',
+      id: 'find-the-winds',
+      prompt: 'Tap every Wind.',
+      choices: [
+        { tile: EAST, correct: true },
+        { tile: GREEN },
+        { tile: crak(3) },
+        { tile: SOUTH, correct: true },
+        { tile: SOAP },
+        { tile: NORTH, correct: true },
+      ],
+      hint: 'Winds carry a letter in the corner: N, E, W, or S.',
+      explanation: 'East, South, and North are Winds. Green and Soap are Dragons, and the 3 Crak is a suit tile.',
     },
     {
       kind: 'tap',
@@ -76,14 +90,14 @@ export const meetTheTiles: Lesson = {
       prompt: 'Tap every Dragon.',
       choices: [
         { tile: RED, correct: true },
-        { tile: { type: 'wind', wind: 'N' } },
+        { tile: NORTH },
         { tile: SOAP, correct: true },
         { tile: bam(5) },
         { tile: GREEN, correct: true },
-        { tile: { type: 'wind', wind: 'S' } },
+        { tile: WEST },
       ],
       hint: 'There are three Dragons: Red, Green, and Soap. The Winds wear a letter in the corner.',
-      explanation: 'Red, Green, and Soap are the three Dragons. North and South are Winds, and the 5 Bam is a suit tile.',
+      explanation: 'Red, Green, and Soap are the three Dragons. North and West are Winds, and the 5 Bam is a suit tile.',
     },
     {
       kind: 'tiles',
@@ -101,6 +115,13 @@ export const meetTheTiles: Lesson = {
       choices: [{ tile: FLOWER }, { tile: SOAP }, { tile: JOKER, correct: true }, { tile: dot(1) }],
       hint: 'Look for the tile with the word on it.',
       explanation: 'That’s the Joker. Jokers are the most useful tiles in the game, which is why there are rules about where they can go.',
+    },
+    {
+      kind: 'text',
+      id: 'counting-up',
+      title: 'Adding it up',
+      body:
+        'Three suits of nine tiles, four of each: 108.\n\nFour Winds and three Dragons, four of each: 16 Winds and 12 Dragons.\n\nThen 8 Flowers and 8 Jokers. That makes 152.',
     },
     {
       kind: 'text',

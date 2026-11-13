@@ -135,7 +135,7 @@ describe('LearnTab', () => {
     expect(announce).not.toHaveBeenCalled();
 
     await act(() => mockRefocus?.());
-    const said = 'Lesson complete: Meet the tiles. Pungs, kongs, quints & pairs is coming soon.';
+    const said = 'Lesson complete: Meet the tiles. Pungs, kongs, quints & pairs is unlocked.';
     expect(announce).toHaveBeenCalledWith(said);
     expect(screen.getByText(said)).toBeTruthy();
     expect(useLessonProgress.getState().pendingCelebration).toBeNull();

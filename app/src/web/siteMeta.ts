@@ -84,6 +84,30 @@ export const ROUTE_META: Readonly<Record<string, RouteMeta>> = {
       'A hands-on first lesson: the three suits, the Winds and Dragons, Flowers, and Jokers in an American Mah Jongg set.',
     indexed: false,
   },
+  '/lesson/groups': {
+    title: 'Pungs, kongs, quints & pairs',
+    description:
+      'Learn the groups every American Mah Jongg hand is built from: singles, pairs, pungs, kongs, and quints, and where Jokers fit.',
+    indexed: false,
+  },
+  '/lesson/reading-a-card': {
+    title: 'Reading a card',
+    description:
+      'How a line on a Mah Jongg card describes a hand: groups, suit colors, Dragon partners, and what X, C, and the value mean.',
+    indexed: false,
+  },
+  '/lesson/jokers': {
+    title: 'Jokers',
+    description:
+      'Where a Joker can stand in, why it never joins a single or a pair, and how to swap one back from an exposure.',
+    indexed: false,
+  },
+  '/lesson/charleston': {
+    title: 'The Charleston',
+    description:
+      'The passes before the first discard: right, across, left, the optional second Charleston, blind passes, and the courtesy pass.',
+    indexed: false,
+  },
   '/settings': {
     title: 'Settings',
     description: 'Adjust haptics and replay the welcome tour.',

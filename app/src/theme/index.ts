@@ -2,6 +2,7 @@ import { colors, type ColorScheme, type ThemeColors } from './colors';
 import { radii, shadows, spacing, typography, type Elevation } from './tokens';
 import { useColorScheme } from './useColorScheme';
 
+export * from './cardInks';
 export * from './colors';
 export * from './palette';
 export * from './tileInks';

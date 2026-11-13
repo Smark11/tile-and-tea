@@ -4,7 +4,14 @@ import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { scoreLine } from '@/components/lesson/LessonComplete';
 import { LessonPlayer } from '@/components/lesson/LessonPlayer';
 import { LessonScreen } from '@/components/lesson/LessonScreen';
-import { fitTileWidth, tilesPerRow } from '@/components/lesson/LessonSteps';
+import {
+  COMFORT_TILE,
+  FLOOR_TILE,
+  layoutGroups,
+  MAX_GROUP_TILE,
+  rowTileWidth,
+} from '@/components/lesson/groupLayout';
+import { fitTileWidth, flowerCopies, TapStepView, tilesPerRow, TilesStepView } from '@/components/lesson/LessonSteps';
 import { emptyProgress, type Lesson } from '@/game/lessons';
 import { useLessonProgress } from '@/state/lessonProgress';
 
@@ -178,6 +185,69 @@ describe('LessonScreen', () => {
   });
 });
 
+describe('card lines and given tiles', () => {
+  const CARD = {
+    segments: [{ text: 'FF' }, { text: '1111', ink: 1 as const }, { text: '2222', ink: 2 as const }, { text: '3333', ink: 3 as const }],
+    note: 'Any 3 consecutive numbers',
+    concealed: true,
+    value: 30,
+    spoken: 'Pair of Flowers, then kongs of 1s, 2s and 3s in three suits. Concealed, worth 30.',
+  };
+
+  it('prints the line, its terms and note, and reads the spoken version instead', async () => {
+    await render(
+      <TilesStepView
+        step={{
+          kind: 'tiles',
+          id: 't',
+          title: 'A line',
+          body: 'Body.',
+          card: CARD,
+          tiles: Array.from({ length: 14 }, () => ({ type: 'wind', wind: 'N' }) as const),
+          groups: [2, 4, 4, 4],
+          caption: 'Fourteen Norths',
+        }}
+      />,
+    );
+    const card = screen.getByTestId('lesson-card-line');
+    expect(card.props.accessibilityLabel).toBe(`Card line. ${CARD.spoken}`);
+    // The printed characters are hidden from screen readers, which hear the label.
+    const hidden = { includeHiddenElements: true };
+    expect(screen.queryByText('1111')).toBeNull();
+    for (const text of ['1111', 'C', '30', 'Any 3 consecutive numbers']) {
+      expect(screen.getByText(text, hidden)).toBeTruthy();
+    }
+    expect(screen.getByRole('image', { name: 'Fourteen Norths' })).toBeTruthy();
+  });
+
+  it('shows the tiles a question is about above the choices, as one picture', async () => {
+    const onTap = jest.fn();
+    await render(
+      <TapStepView
+        step={{
+          kind: 'tap',
+          id: 'q',
+          prompt: 'Tap the tile that makes a pair.',
+          given: { tiles: [{ type: 'suited', suit: 'dot', rank: 5 }], caption: 'A single 5 Dot' },
+          choices: [{ tile: { type: 'suited', suit: 'dot', rank: 5 }, correct: true }, { tile: { type: 'joker' } }],
+          hint: 'h',
+          explanation: 'e',
+        }}
+        selected={[]}
+        revealAnswer={false}
+        settled={false}
+        singleAnswer
+        onTap={onTap}
+      />,
+    );
+    expect(screen.getByRole('image', { name: 'A single 5 Dot' })).toBeTruthy();
+    // Only the choices are buttons.
+    expect(screen.getAllByRole('button').map((b) => b.props.accessibilityLabel)).toEqual(['Five of Dots', 'Joker']);
+    await fireEvent.press(screen.getByRole('button', { name: 'Joker' }));
+    expect(onTap).toHaveBeenCalledWith(1);
+  });
+});
+
 describe('lesson layout and copy', () => {
   it('balances tiles into rows of up to four', () => {
     expect([1, 3, 4, 5, 6, 7, 8].map(tilesPerRow)).toEqual([1, 3, 4, 3, 3, 4, 4]);
@@ -187,6 +257,32 @@ describe('lesson layout and copy', () => {
     expect(fitTileWidth(300, 4)).toBe(66);
     expect(fitTileWidth(2000, 3)).toBe(84);
     expect(fitTileWidth(100, 4)).toBe(44);
+  });
+
+  it('keeps a full hand on one row when there is room, and never splits a group', () => {
+    const hand = [3, 2, 3, 2, 4];
+    const desktop = layoutGroups(1000, hand);
+    expect(desktop.rows).toEqual([[0, 1, 2, 3, 4]]);
+    expect(desktop.width).toBeGreaterThanOrEqual(COMFORT_TILE);
+    // A phone mat (~311pt) takes three even rows rather than tiles too small to read.
+    const phone = layoutGroups(311, hand);
+    expect(phone.rows).toEqual([[0, 1], [2, 3], [4]]);
+    expect(phone.width).toBeGreaterThanOrEqual(COMFORT_TILE);
+    expect(phone.width).toBeLessThanOrEqual(MAX_GROUP_TILE);
+    for (const row of phone.rows) {
+      expect(rowTileWidth(311, row.map((g) => hand[g]))).toBeGreaterThanOrEqual(phone.width);
+    }
+  });
+
+  it('caps small groups at the largest tile and squeezes rather than overflow', () => {
+    expect(layoutGroups(311, [1, 2])).toEqual({ width: MAX_GROUP_TILE, rows: [[0, 1]] });
+    expect(layoutGroups(100, [4, 4, 4, 4]).width).toBe(FLOOR_TILE);
+    expect(layoutGroups(300, [])).toEqual({ width: MAX_GROUP_TILE, rows: [] });
+  });
+
+  it('gives each Flower in a spread its own print', () => {
+    const f = { type: 'flower' } as const;
+    expect(flowerCopies([f, { type: 'joker' }, f, f])).toEqual([0, undefined, 1, 2]);
   });
 
   it('describes the score warmly', () => {

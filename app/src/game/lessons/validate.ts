@@ -1,9 +1,40 @@
 import { tileKey } from '../tiles';
 
-import type { Lesson } from './types';
+import type { CardLine, Lesson, TileDisplay } from './types';
 
 /** URL-safe ids: lowercase words joined by single hyphens. */
 const ID_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+/** A hand on the card is always 14 tiles, and each printed character is one tile. */
+export const HAND_SIZE = 14;
+
+/** More choices than this won't fit a phone-width mat at a tappable size. */
+export const MAX_CHOICES = 10;
+
+function displayErrors(display: TileDisplay, at: string): string[] {
+  const errors: string[] = [];
+  if (display.tiles.length === 0) errors.push(`${at}: no tiles to show`);
+  if (!display.caption.trim()) errors.push(`${at}: tiles need a caption`);
+  if (display.groups) {
+    if (display.groups.some((g) => !Number.isInteger(g) || g < 1)) errors.push(`${at}: group sizes must be whole and positive`);
+    const total = display.groups.reduce((a, b) => a + b, 0);
+    if (total !== display.tiles.length) {
+      errors.push(`${at}: groups add up to ${total}, but there are ${display.tiles.length} tiles`);
+    }
+  }
+  return errors;
+}
+
+function cardErrors(card: CardLine, at: string): string[] {
+  const errors: string[] = [];
+  if (card.segments.length === 0) errors.push(`${at}: card line has no groups`);
+  if (card.segments.some((s) => !/^\S+$/.test(s.text))) errors.push(`${at}: card groups must be printed without spaces`);
+  const count = card.segments.reduce((n, s) => n + s.text.length, 0);
+  if (count !== HAND_SIZE) errors.push(`${at}: card line has ${count} tiles, not ${HAND_SIZE}`);
+  if (!(card.value > 0)) errors.push(`${at}: card line needs a value`);
+  if (!card.spoken.trim()) errors.push(`${at}: card line needs a spoken version`);
+  return errors;
+}
 
 /**
  * Everything wrong with a lesson's data, as readable messages; empty when it's
@@ -31,8 +62,15 @@ export function validateLesson(lesson: Lesson): string[] {
         break;
       case 'tiles':
         if (!step.title.trim() || !step.body.trim()) errors.push(`${where(step.id)}: empty text`);
-        if (step.tiles.length === 0) errors.push(`${where(step.id)}: no tiles to show`);
-        if (!step.caption.trim()) errors.push(`${where(step.id)}: tiles need a caption`);
+        errors.push(...displayErrors(step, where(step.id)));
+        if (step.card) {
+          errors.push(...cardErrors(step.card, where(step.id)));
+          // Tiles shown under a line are that line laid out, group for group.
+          const sizes = step.card.segments.map((s) => s.text.length).join(',');
+          if (step.groups && step.groups.join(',') !== sizes) {
+            errors.push(`${where(step.id)}: tile groups ${step.groups.join(',')} don't match the card line's ${sizes}`);
+          }
+        }
         break;
       case 'tap': {
         if (!step.prompt.trim()) errors.push(`${where(step.id)}: empty prompt`);
@@ -40,6 +78,9 @@ export function validateLesson(lesson: Lesson): string[] {
         if (!step.explanation.trim()) errors.push(`${where(step.id)}: empty explanation`);
         const correct = step.choices.filter((c) => c.correct).length;
         if (step.choices.length < 2) errors.push(`${where(step.id)}: needs at least 2 choices`);
+        if (step.choices.length > MAX_CHOICES) errors.push(`${where(step.id)}: more than ${MAX_CHOICES} choices won't fit`);
+        if (step.given) errors.push(...displayErrors(step.given, where(step.id)));
+        if (step.card) errors.push(...cardErrors(step.card, where(step.id)));
         if (correct === 0) errors.push(`${where(step.id)}: no correct choice`);
         if (correct === step.choices.length) {
           errors.push(`${where(step.id)}: every choice is correct, so there's nothing to tell apart`);

@@ -2,6 +2,7 @@ import { colors, type ColorScheme, type ThemeColors } from '../colors';
 import { contrastRatio, parseHex, relativeLuminance } from '../contrast';
 import { fontAssets } from '../fonts';
 import { getTheme } from '../index';
+import { cardInks } from '../cardInks';
 import { tileInks } from '../tileInks';
 import { fontFamilies, minTouchTarget, typography } from '../tokens';
 
@@ -61,6 +62,19 @@ describe('tile inks', () => {
     for (const face of [tileInks.faceLight, tileInks.face, tileInks.faceShade]) {
       expect(contrastRatio(tileInks[inkName], face)).toBeGreaterThanOrEqual(4.5);
     }
+  });
+});
+
+describe('card inks', () => {
+  it.each(['plain', 'muted', 'suit1', 'suit2', 'suit3'] as const)('%s reads at AA on the card paper', (inkName) => {
+    for (const paper of [cardInks.paper, cardInks.paperShade]) {
+      expect(contrastRatio(cardInks[inkName], paper)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('keeps the three suit colors apart from each other', () => {
+    const suits = [cardInks.suit1, cardInks.suit2, cardInks.suit3];
+    expect(new Set(suits).size).toBe(3);
   });
 });
 

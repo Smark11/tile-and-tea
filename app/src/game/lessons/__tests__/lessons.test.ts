@@ -17,7 +17,9 @@ import {
   startSession,
   validateCatalog,
   validateLesson,
+  type CardLine,
   type Lesson,
+  type LessonStep,
   type SessionAction,
   type SessionState,
   type TapStep,
@@ -169,6 +171,51 @@ describe('validateLesson', () => {
     const errors = validateLesson(tapStep([{ tile: RED, correct: true }, { tile: RED }, { tile: NORTH }]));
     expect(errors).toContain(`fixture › q: two ${tileKey(RED)} tiles disagree on whether they're correct`);
     expect(validateLesson(tapStep([{ tile: RED, correct: true }, { tile: RED, correct: true }, { tile: NORTH }]))).toEqual([]);
+  });
+
+  it('checks that tile groups add up and that questions fit a phone', () => {
+    const shown: Lesson = {
+      ...FIXTURE,
+      steps: [{ kind: 'tiles', id: 't', title: 'T', body: 'B', tiles: [RED, RED, GREEN], groups: [2, 2], caption: 'c' }],
+    };
+    expect(validateLesson(shown)).toContain('fixture › t: groups add up to 4, but there are 3 tiles');
+    expect(validateLesson({ ...shown, steps: [{ ...shown.steps[0], groups: [3, 0] } as LessonStep] }).join()).toMatch(
+      /group sizes must be whole and positive/,
+    );
+    const crowded = tapStep([{ tile: RED, correct: true }, ...Array.from({ length: 10 }, () => ({ tile: NORTH }))]);
+    expect(validateLesson(crowded).join()).toMatch(/more than 10 choices/);
+    const given = { ...tapStep([{ tile: RED, correct: true }, { tile: NORTH }]) };
+    const q = given.steps[0] as TapStep;
+    expect(validateLesson({ ...given, steps: [{ ...q, given: { tiles: [RED], groups: [2], caption: '' } }] })).toEqual([
+      'fixture › q: tiles need a caption',
+      'fixture › q: groups add up to 2, but there are 1 tiles',
+    ]);
+  });
+
+  it('checks card lines: 14 tiles, a value, words to speak, and tiles that match', () => {
+    const line: CardLine = {
+      segments: [{ text: 'FF' }, { text: '1111', ink: 1 }, { text: '2222', ink: 2 }, { text: '3333', ink: 3 }],
+      concealed: false,
+      value: 25,
+      spoken: 'A line.',
+    };
+    const tiles: TileKind[] = Array.from({ length: 14 }, () => NORTH);
+    const withCard = (card: CardLine, groups?: number[]): Lesson => ({
+      ...FIXTURE,
+      steps: [{ kind: 'tiles', id: 't', title: 'T', body: 'B', tiles, groups, caption: 'c', card }],
+    });
+    expect(validateLesson(withCard(line, [2, 4, 4, 4]))).toEqual([]);
+    expect(validateLesson(withCard(line, [2, 4, 4, 2, 2]))).toEqual([
+      "fixture › t: tile groups 2,4,4,2,2 don't match the card line's 2,4,4,4",
+    ]);
+    expect(validateLesson(withCard({ ...line, segments: line.segments.slice(1), value: 0, spoken: ' ' }))).toEqual([
+      'fixture › t: card line has 12 tiles, not 14',
+      'fixture › t: card line needs a value',
+      'fixture › t: card line needs a spoken version',
+    ]);
+    expect(validateLesson(withCard({ ...line, segments: [{ text: 'FF 11' }, ...line.segments.slice(2)] })).join()).toMatch(
+      /printed without spaces/,
+    );
   });
 
   it('flags duplicate lesson ids across the catalog', () => {

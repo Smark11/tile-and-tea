@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import { StyleSheet, useColorScheme } from 'react-native';
 
 import { Button, variantStyles } from '../Button';
@@ -171,9 +171,11 @@ describe('Styleguide', () => {
 
   it('shows every tile face, including all eight flowers', async () => {
     await render(<Styleguide />);
-    expect(screen.getByRole('button', { name: 'Nine of Characters' })).toBeOnTheScreen();
-    expect(screen.getByRole('image', { name: 'Green Dragon' })).toBeOnTheScreen();
-    expect(screen.getAllByRole('image', { name: 'Flower' })).toHaveLength(8);
-    expect(screen.getAllByRole('image', { name: 'Joker' }).length).toBeGreaterThanOrEqual(1);
+    // Lesson demos further down show tiles too, so look only at the Tiles section.
+    const tiles = within(screen.getByTestId('styleguide-tiles'));
+    expect(tiles.getByRole('button', { name: 'Nine of Characters' })).toBeOnTheScreen();
+    expect(tiles.getByRole('image', { name: 'Green Dragon' })).toBeOnTheScreen();
+    expect(tiles.getAllByRole('image', { name: 'Flower' })).toHaveLength(8);
+    expect(tiles.getAllByRole('image', { name: 'Joker' }).length).toBeGreaterThanOrEqual(1);
   });
 });

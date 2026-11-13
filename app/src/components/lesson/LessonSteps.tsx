@@ -11,9 +11,12 @@ import Svg, { Path } from 'react-native-svg';
 import { Card } from '@/components/Card';
 import { Text } from '@/components/Text';
 import { Tile, tileDimensions } from '@/components/tile/Tile';
-import type { FeedbackMessage, TapStep, TextStep, TilesStep } from '@/game/lessons';
+import type { FeedbackMessage, TapStep, TextStep, TileDisplay, TilesStep } from '@/game/lessons';
 import type { TileKind } from '@/game/tiles';
 import { radii, spacing, tileInks, useTheme } from '@/theme';
+
+import { CardLineView } from './CardLineView';
+import { GROUP_GAP, INNER_GAP, layoutGroups } from './groupLayout';
 
 // The pieces of a lesson page. They're presentational: the player (and the
 // styleguide) pass in exactly what to show, so every state can be rendered
@@ -70,34 +73,83 @@ type SpreadTile = {
   testID?: string;
 };
 
-/** Tiles laid out on the felt in balanced rows, sized to the space they have. */
-function TileSpread({ tiles }: { tiles: readonly SpreadTile[] }) {
+/**
+ * Which flower print each tile shows: every Flower in a spread gets the next
+ * print, so two Flowers side by side look different, as they do in a real set.
+ */
+export function flowerCopies(kinds: readonly TileKind[]): (number | undefined)[] {
+  let next = 0;
+  return kinds.map((k) => (k.type === 'flower' ? next++ % 8 : undefined));
+}
+
+/**
+ * Tiles laid out on the felt, sized to the space they have. Loose tiles sit in
+ * balanced rows; grouped tiles sit together, a little apart from the next group.
+ */
+function TileSpread({ tiles, groups }: { tiles: readonly SpreadTile[]; groups?: readonly number[] }) {
   const [available, setAvailable] = useState(0);
-  const perRow = tilesPerRow(tiles.length);
-  const width = available > 0 ? fitTileWidth(available, perRow) : 64;
-  const rows: SpreadTile[][] = [];
-  for (let i = 0; i < tiles.length; i += perRow) rows.push(tiles.slice(i, i + perRow));
+  const copies = flowerCopies(tiles.map((t) => t.kind));
+  const indexed = tiles.map((t, i) => ({ ...t, index: i }));
+  let width: number;
+  // Each row is a list of clusters; a cluster is tiles that touch.
+  let rows: (typeof indexed)[][];
+  if (groups) {
+    const layout = layoutGroups(available > 0 ? available : 320, groups);
+    const starts = groups.map((_, g) => groups.slice(0, g).reduce((a, b) => a + b, 0));
+    width = layout.width;
+    rows = layout.rows.map((row) => row.map((g) => indexed.slice(starts[g], starts[g] + groups[g])));
+  } else {
+    const perRow = tilesPerRow(tiles.length);
+    width = available > 0 ? fitTileWidth(available, perRow) : 64;
+    rows = [];
+    for (let i = 0; i < tiles.length; i += perRow) rows.push(indexed.slice(i, i + perRow).map((t) => [t]));
+  }
   const onLayout = (e: LayoutChangeEvent) => setAvailable(e.nativeEvent.layout.width);
   // Selected tiles rise, so leave headroom for them above the first row.
   const headroom = Math.round(tileDimensions(width).height * 0.16);
   return (
     <View onLayout={onLayout} style={[styles.spread, { paddingTop: headroom }]}>
       {rows.map((row, r) => (
-        <View key={r} style={styles.spreadRow}>
-          {row.map((t, i) => (
-            <Tile
-              key={i}
-              kind={t.kind}
-              width={width}
-              selected={t.selected}
-              hint={t.hint}
-              disabled={t.disabled}
-              onPress={t.onPress}
-              testID={t.testID}
-            />
+        <View key={r} style={[styles.spreadRow, groups && styles.groupRow]}>
+          {row.map((cluster, c) => (
+            <View key={c} style={styles.cluster}>
+              {cluster.map((t) => (
+                <Tile
+                  key={t.index}
+                  kind={t.kind}
+                  copy={copies[t.index]}
+                  width={width}
+                  selected={t.selected}
+                  hint={t.hint}
+                  disabled={t.disabled}
+                  onPress={t.onPress}
+                  testID={t.testID}
+                />
+              ))}
+            </View>
           ))}
         </View>
       ))}
+    </View>
+  );
+}
+
+/** Tiles to look at (not tap), with their caption read in place of tile names. */
+function TileDisplayView({ display }: { display: TileDisplay }) {
+  return (
+    <View style={styles.display}>
+      <View accessible accessibilityRole="image" accessibilityLabel={display.caption}>
+        <TileSpread tiles={display.tiles.map((kind) => ({ kind }))} groups={display.groups} />
+      </View>
+      <Text
+        variant="callout"
+        color="onFeltMuted"
+        align="center"
+        importantForAccessibility="no-hide-descendants"
+        accessibilityElementsHidden
+      >
+        {display.caption}
+      </Text>
     </View>
   );
 }
@@ -117,13 +169,9 @@ export function TilesStepView({ step }: { step: TilesStep }) {
   return (
     <View style={styles.step}>
       <Text variant="title1">{step.title}</Text>
+      {step.card && <CardLineView line={step.card} testID="lesson-card-line" />}
       <Card tone="felt" elevation="high" style={styles.mat}>
-        <View accessible accessibilityRole="image" accessibilityLabel={step.caption}>
-          <TileSpread tiles={step.tiles.map((kind) => ({ kind }))} />
-        </View>
-        <Text variant="callout" color="onFeltMuted" align="center" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-          {step.caption}
-        </Text>
+        <TileDisplayView display={step} />
       </Card>
       <Paragraphs body={step.body} />
     </View>
@@ -143,6 +191,7 @@ export type TapStepViewProps = {
 };
 
 export function TapStepView({ step, selected, revealAnswer, settled, onTap, singleAnswer }: TapStepViewProps) {
+  const { colors } = useTheme();
   return (
     <View style={styles.step}>
       <Text variant="eyebrow">Your turn</Text>
@@ -150,7 +199,14 @@ export function TapStepView({ step, selected, revealAnswer, settled, onTap, sing
       <Text color="textMuted">
         {singleAnswer ? 'Tap a tile to answer.' : 'Tap each one you find, then Check.'}
       </Text>
+      {step.card && <CardLineView line={step.card} testID="lesson-card-line" />}
       <Card tone="felt" elevation="high" style={styles.mat}>
+        {step.given && (
+          <>
+            <TileDisplayView display={step.given} />
+            <View style={[styles.divider, { backgroundColor: colors.feltInlay }]} />
+          </>
+        )}
         <TileSpread
           tiles={step.choices.map((choice, i) => ({
             kind: choice.tile,
@@ -234,6 +290,11 @@ const styles = StyleSheet.create({
   mat: { paddingVertical: spacing.xl, paddingHorizontal: spacing.lg, gap: spacing.lg },
   spread: { gap: TILE_GAP, alignItems: 'center' },
   spreadRow: { flexDirection: 'row', justifyContent: 'center', gap: TILE_GAP },
+  groupRow: { gap: GROUP_GAP },
+  cluster: { flexDirection: 'row', gap: INNER_GAP },
+  display: { gap: spacing.md },
+  // Separates the tiles a question is about from the tiles to choose from.
+  divider: { height: StyleSheet.hairlineWidth * 2, marginHorizontal: spacing.xl },
   feedback: {
     flexDirection: 'row',
     alignItems: 'flex-start',

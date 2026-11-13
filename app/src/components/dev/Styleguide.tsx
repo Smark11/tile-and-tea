@@ -12,9 +12,10 @@ import {
   emptyProgress,
   feedbackMessage,
   isSingleAnswer,
+  lessonById,
   lessonReducer,
   LESSONS,
-  PLANNED_LESSONS,
+  type PlannedLesson,
   recordCompletion,
   saveSnapshot,
   startSession,
@@ -78,7 +79,7 @@ const elevations: Elevation[] = ['low', 'medium', 'high'];
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <View style={styles.section}>
+    <View style={styles.section} testID={`styleguide-${title.toLowerCase().replace(/\s+/g, '-')}`}>
       <Text variant="title2">{title}</Text>
       {children}
     </View>
@@ -250,15 +251,14 @@ function RackDemo() {
 /**
  * The lesson path partway along, so every node state shows at once: finished,
  * under way, locked, and (in the second path) reached but still being written.
- * Planned lessons stand in as written ones here, with placeholder steps.
+ * A sample planned lesson stands in for one still being written.
  */
+const SAMPLE_PLANNED: readonly PlannedLesson[] = [
+  { id: 'calling', title: 'Calling and exposing', summary: 'Claiming a discard to finish a group.' },
+];
+
 function LessonPathDemo() {
-  const placeholder = (p: (typeof PLANNED_LESSONS)[number]): Lesson => ({
-    ...p,
-    minutes: 5,
-    steps: Array.from({ length: 8 }, (_, i) => ({ kind: 'text' as const, id: `s${i}`, title: 'Step', body: 'Body' })),
-  });
-  const written = [LESSONS[0], ...PLANNED_LESSONS.slice(0, 2).map(placeholder)];
+  const written = LESSONS.slice(0, 3);
   const at = new Date('2026-11-12T10:00:00Z');
   const one = recordCompletion(emptyProgress, LESSONS[0].id, { firstTry: 3, questions: 3 }, at);
   const midway = saveSnapshot(one, written[1].id, { stepIndex: 5, results: {} });
@@ -269,7 +269,7 @@ function LessonPathDemo() {
       <Text variant="caption">Partway through lesson 2</Text>
       <LessonPath nodes={buildLessonPath(midway, written)} onOpen={open} />
       <Text variant="caption">A finished lesson, and one still being written</Text>
-      <LessonPath nodes={buildLessonPath(reached, written.slice(0, 2)).slice(0, 3)} onOpen={open} />
+      <LessonPath nodes={buildLessonPath(reached, written.slice(0, 2), SAMPLE_PLANNED)} onOpen={open} />
     </View>
   );
 }
@@ -281,6 +281,14 @@ function LessonDemo() {
   const single = questions.find(isSingleAnswer)!;
   const many = questions.find((s) => !isSingleAnswer(s))!;
   const tiles = lesson.steps.find((s) => s.kind === 'tiles')!;
+  // Card lines, grouped hands, and questions about given tiles, from later lessons.
+  const pick = (lessonId: string, stepId: string) => lessonById(lessonId)!.steps.find((s) => s.id === stepId)!;
+  const extras = [
+    { label: 'A card line over its hand, in three suits', step: pick('reading-a-card', 'colors-are-suits') },
+    { label: 'A concealed line, grouped', step: pick('reading-a-card', 'x-or-c') },
+    { label: 'A question about given tiles', step: pick('groups', 'make-a-pung') },
+    { label: 'A question about a card line', step: pick('charleston', 'choose-a-pass') },
+  ];
   const after = (step: TapStep, taps: number[], extra: SessionAction[] = []) => {
     const demo: Lesson = { ...lesson, steps: [step] };
     const reduce = lessonReducer(demo);
@@ -298,6 +306,15 @@ function LessonDemo() {
   return (
     <View style={styles.lessonDemo}>
       {tiles.kind === 'tiles' && <TilesStepView step={tiles} />}
+      {extras.map(({ label, step }) => (
+        <View key={label} style={styles.lessonState}>
+          <Text variant="caption">{label}</Text>
+          {step.kind === 'tiles' && <TilesStepView step={step} />}
+          {step.kind === 'tap' && (
+            <TapStepView step={step} selected={[]} revealAnswer={false} settled={false} singleAnswer={isSingleAnswer(step)} onTap={() => {}} />
+          )}
+        </View>
+      ))}
       {states.map(({ label, step, state }) => {
         const message = feedbackMessage(step, state);
         return (

@@ -17,12 +17,7 @@ export type PlannedLesson = {
  * Lessons still being written, in path order. When a lesson ships, move it
  * from here into `LESSONS` (keeping the id, since it keys saved progress).
  */
-export const PLANNED_LESSONS: readonly PlannedLesson[] = [
-  { id: 'groups', title: 'Pungs, kongs, quints & pairs', summary: 'The groups every hand is built from.' },
-  { id: 'reading-a-card', title: 'Reading a card', summary: 'How each line on a card describes a hand.' },
-  { id: 'jokers', title: 'Jokers', summary: 'Where a joker can stand in, and where it can’t.' },
-  { id: 'charleston', title: 'The Charleston', summary: 'Passing tiles before the first discard.' },
-];
+export const PLANNED_LESSONS: readonly PlannedLesson[] = [];
 
 /**
  * A node's state on the path. `coming-soon` is a planned lesson the player
