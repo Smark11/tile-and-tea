@@ -14,6 +14,7 @@ import {
   localDay,
   nameTheHand,
   NO_USAGE,
+  rateAnswer,
   roundReducer,
   startRound,
   type Drill,
@@ -49,6 +50,7 @@ const PAIR_DRILL: Drill<null> = {
   summary: 'For tests.',
   icon: { type: 'joker' },
   questionsPerRound: 2,
+  level: 1000,
   generate: (seed) => ({
     seed,
     key: String(seed),
@@ -70,7 +72,7 @@ const router = () => jest.requireMock('expo-router').router;
 beforeEach(async () => {
   jest.clearAllMocks();
   await AsyncStorage.clear();
-  useDrillProgress.setState({ usage: NO_USAGE, records: {} });
+  useDrillProgress.setState({ usage: NO_USAGE, records: {}, ratings: {} });
   mockParams = {};
 });
 
@@ -150,11 +152,39 @@ describe('DrillPlayer with multi-pick tile choices', () => {
     expect(screen.getByTestId('drill-complete')).toBeTruthy();
     expect(screen.getByLabelText('Round results: 1 of 2 spot on, 1 sound')).toBeTruthy();
     expect(useDrillProgress.getState().records.pairs).toEqual({ rounds: 1, bestScore: 0.75 });
+    // Both answers moved the drill's skill rating: a sound one, then a best one.
+    const sound = rateAnswer(undefined, { score: 0.5, level: PAIR_DRILL.level, startsRound: true });
+    expect(useDrillProgress.getState().ratings.charleston).toEqual(
+      rateAnswer(sound, { score: 1, level: PAIR_DRILL.level, startsRound: false }),
+    );
 
     await fireEvent.press(screen.getByRole('button', { name: 'Another round' }));
     expect(screen.getByText(/Question 1 of 2/)).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: 'Close drill' }));
     expect(router().back).toHaveBeenCalled();
+  });
+});
+
+describe('DrillPlayer skill ratings', () => {
+  it('tracks a band reached only on the answer that crosses into it', async () => {
+    useDrillProgress.setState({ ratings: { charleston: { rating: 995, answers: 20, roundStart: 990 } } });
+    await render(<DrillPlayer drill={PAIR_DRILL} seed={1} />);
+    await fireEvent.press(screen.getByTestId('drill-choice-0'));
+    await fireEvent.press(screen.getByTestId('drill-choice-1'));
+    await fireEvent.press(screen.getByTestId('drill-primary'));
+    const after = useDrillProgress.getState().ratings.charleston!;
+    expect(after.rating).toBeGreaterThan(1000);
+    // The round's change is measured from just before its first answer.
+    expect(after.roundStart).toBe(995);
+    expect(track()).toHaveBeenCalledWith('skill_level_reached', { skill: 'charleston', level: 'steady' });
+
+    // Another best answer stays in the band, so nothing more is sent.
+    await fireEvent.press(screen.getByTestId('drill-primary'));
+    await fireEvent.press(screen.getByTestId('drill-choice-0'));
+    await fireEvent.press(screen.getByTestId('drill-choice-2'));
+    await fireEvent.press(screen.getByTestId('drill-primary'));
+    expect(track().mock.calls.filter(([event]) => event === 'skill_level_reached')).toHaveLength(1);
+    expect(useDrillProgress.getState().ratings.charleston!.answers).toBe(22);
   });
 });
 

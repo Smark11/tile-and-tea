@@ -103,6 +103,11 @@ export type Drill<Data = unknown> = {
   /** A tile for the drill's row on the Train tab. */
   readonly icon: TileKind;
   readonly questionsPerRound: number;
+  /**
+   * How hard the drill's questions are, on the skill-rating scale
+   * (./ratings.ts): a player rated at this level averages a half-right answer.
+   */
+  readonly level: number;
   /** Deals one question. Must be deterministic in `seed`. */
   readonly generate: (seed: number) => DrillQuestion<Data>;
   /** Judges a pick of exactly `question.picks` distinct choice indexes. */

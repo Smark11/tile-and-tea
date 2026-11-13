@@ -15,6 +15,7 @@ import {
   currentAnswer,
   currentQuestion,
   isSoundAnswer,
+  levelReached,
   roundReducer,
   scoreRound,
   startRound,
@@ -61,9 +62,14 @@ export function DrillPlayer({ drill, seed }: { drill: AnyDrill; seed: number }) 
 
     if (next.answers.length > prev.answers.length) {
       const { evaluation } = next.answers[next.answers.length - 1];
+      const startsRound = prev.answers.length === 0;
       track('drill_answered', { skill: drill.skill, correct: isSoundAnswer(evaluation) });
+      const progress = useDrillProgress.getState();
       // A round counts toward the daily allowance once the player commits to it.
-      if (prev.answers.length === 0) useDrillProgress.getState().countRound();
+      if (startsRound) progress.countRound();
+      const { before, after } = progress.rateAnswer(drill.skill, { score: evaluation.score, level: drill.level, startsRound });
+      const reached = levelReached(before, after);
+      if (reached) track('skill_level_reached', { skill: drill.skill, level: reached.id });
       if (evaluation.verdict === 'best') hapticSuccess();
       else hapticTick();
       // Bring the coach's explanation into view below the choices.

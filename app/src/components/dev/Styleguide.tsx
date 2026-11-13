@@ -24,6 +24,7 @@ import {
   type SessionAction,
   type TapStep,
 } from '@/game/lessons';
+import { SkillMeters, type SkillMeterItem } from '@/components/progress/SkillMeters';
 import { Rack } from '@/components/rack/Rack';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
@@ -32,12 +33,15 @@ import {
   bestHand,
   charleston,
   discards,
+  drillForSkill,
   currentAnswer,
   currentQuestion,
   nameTheHand,
   roundReducer,
+  SKILLS,
   startRound,
   type DrillQuestion,
+  type SkillRating,
 } from '@/game/drills';
 import type { BestHandData } from '@/game/drills/content/bestHand';
 import type { CharlestonData } from '@/game/drills/content/charleston';
@@ -461,6 +465,22 @@ function DiscardsDemo() {
   );
 }
 
+// One of each meter state: settled and rising, rising, settling in and slipping, and not rated yet.
+const SAMPLE_RATINGS: readonly (SkillRating | undefined)[] = [
+  { rating: 1338, answers: 64, roundStart: 1316 },
+  { rating: 1074, answers: 23, roundStart: 1061 },
+  { rating: 884, answers: 6, roundStart: 912 },
+  undefined,
+];
+
+function SkillMetersDemo() {
+  const items: SkillMeterItem[] = SKILLS.flatMap((skill, i) => {
+    const drill = drillForSkill(skill.id);
+    return drill ? [{ skill, rating: SAMPLE_RATINGS[i], drill }] : [];
+  });
+  return <SkillMeters items={items} onOpen={noop} />;
+}
+
 export function Styleguide() {
   const { colors, scheme, shadows } = useTheme();
   const semantic = Object.entries(colors) as [keyof ThemeColors, string][];
@@ -505,6 +525,10 @@ export function Styleguide() {
 
       <Section title="Discards drill">
         <DiscardsDemo />
+      </Section>
+
+      <Section title="Skill meters">
+        <SkillMetersDemo />
       </Section>
 
       <Section title="Brand palette">

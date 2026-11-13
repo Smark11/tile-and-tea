@@ -21,7 +21,7 @@ const PORT = Number(process.env.SCREENSHOT_PORT ?? 8099);
 const SCHEMES = /** @type {const} */ (['light', 'dark']);
 const FIRST_LOAD_TIMEOUT_MS = 180_000; // first request triggers the web bundle build
 const SETTLE_MS = 1_000; // let entrance springs finish before capturing
-const MAX_SCROLL_FRAMES = 26; // extra below-the-fold captures per long screen (the styleguide is the longest)
+const MAX_SCROLL_FRAMES = 32; // extra below-the-fold captures per long screen (the styleguide is the longest)
 const WELCOME_ROUTE = '/welcome';
 
 /**

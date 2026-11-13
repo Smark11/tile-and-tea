@@ -23,6 +23,7 @@ function toyDrill(picks: number, questionsPerRound = 3, distinct = 10): Drill<{ 
     summary: 'A toy drill.',
     icon: { type: 'joker' },
     questionsPerRound,
+    level: 1000,
     generate: (seed) => {
       const n = seed % distinct;
       return {

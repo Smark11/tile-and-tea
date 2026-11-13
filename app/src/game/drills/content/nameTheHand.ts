@@ -228,6 +228,7 @@ export const nameTheHand: Drill<NameTheHandData> = {
   summary: 'A finished hand is on the table. Find its line on the card.',
   icon: { type: 'flower' },
   questionsPerRound: 5,
+  level: 900,
   generate: (seed) => generateNameTheHand(seed),
   evaluate: (question, picked) => evaluateNameTheHand(question, picked),
 };

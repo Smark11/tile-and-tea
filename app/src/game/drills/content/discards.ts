@@ -600,6 +600,7 @@ export const discards: Drill<DiscardData> = {
   summary: 'Decide what to let go, and what’s safe to throw.',
   icon: { type: 'suited', suit: 'crak', rank: 7 },
   questionsPerRound: 5,
+  level: 1100,
   generate: (seed) => generateDiscard(seed),
   evaluate: (question, picked) => evaluateDiscard(question, picked),
 };

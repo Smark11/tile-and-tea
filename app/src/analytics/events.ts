@@ -21,6 +21,8 @@ export type AnalyticsEvents = {
   lesson_completed: { lesson_id: string };
   /** One answer in a Train drill. `skill` is the drill's skill id. */
   drill_answered: { skill: string; correct: boolean };
+  /** A drill answer lifted a skill's rating into a higher band. `level` is the band's id, e.g. 'steady'. */
+  skill_level_reached: { skill: string; level: string };
   /** `opponents` is the bot level, e.g. 'beginner'. */
   game_started: { opponents: string };
   game_finished: { opponents: string; result: GameResult };
@@ -35,6 +37,7 @@ export const ANALYTICS_EVENT_NAMES = [
   'lesson_started',
   'lesson_completed',
   'drill_answered',
+  'skill_level_reached',
   'game_started',
   'game_finished',
   'share_clicked',

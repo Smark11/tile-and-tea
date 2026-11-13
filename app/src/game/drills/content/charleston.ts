@@ -476,6 +476,7 @@ export const charleston: Drill<CharlestonData> = {
   summary: 'Choose three tiles to pass, and keep your best hand close.',
   icon: { type: 'wind', wind: 'E' },
   questionsPerRound: 5,
+  level: 1050,
   generate: (seed) => generateCharleston(seed),
   evaluate: (question, picked) => evaluateCharleston(question, picked),
 };

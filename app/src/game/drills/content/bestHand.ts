@@ -304,6 +304,7 @@ export const bestHand: Drill<BestHandData> = {
   summary: 'Read a rack against the card and pick the hand to go for.',
   icon: { type: 'joker' },
   questionsPerRound: 5,
+  level: 1000,
   generate: (seed) => generateBestHand(seed),
   evaluate: (question, picked) => evaluateBestHand(question, picked),
 };
