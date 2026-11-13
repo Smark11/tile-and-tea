@@ -34,6 +34,14 @@ if [[ "${1:-}" == "--pass" ]]; then
   echo "Checkpoint cleared."
 fi
 
+# An interrupted or rejected task is saved in logs/.pending (stamp, then task line),
+# so the next run resumes it instead of starting the next task on top of it.
+PENDING=logs/.pending
+pause() {  # $1 = message, $2 = exit code
+  printf '%s\n%s\n' "$stamp" "$line" > "$PENDING"
+  echo "$1"; exit "$2"
+}
+
 next_line() {  # first remaining todo or checkpoint line
   grep -m1 -E '^- \[ \]|^## 🛑 CHECKPOINT' tasks/BACKLOG.md || true
 }
@@ -59,6 +67,22 @@ VERDICT: APPROVE   or   VERDICT: CHANGES_REQUESTED"
 }
 
 for ((i = 1; i <= MAX_ITERS; i++)); do
+  if [[ -f "$PENDING" ]]; then
+    stamp="$(sed -n 1p "$PENDING")"; line="$(sed -n 2p "$PENDING")"; rm "$PENDING"
+    echo "↻ Resuming: $line"
+    # Feed back the rejecting reviews from the last round, if there was one.
+    feedback=""
+    last="$(ls logs/$stamp-review*-*.md 2>/dev/null | sed -E 's/.*review([0-9]+)-.*/\1/' | sort -n | tail -1)"
+    if [[ -n "$last" ]]; then
+      for f in logs/$stamp-review$last-*.md; do
+        grep -q "VERDICT: APPROVE" "$f" || feedback+=$'\n\n'"### $(basename "$f")"$'\n'"$(cat "$f")"
+      done
+    fi
+    stamp="$(date +%Y%m%d-%H%M%S)"
+    out="$(build "Follow CLAUDE.md. You are resuming the current task, which an earlier run left unfinished or not yet approved (do not start a new task, do not commit). Finish it, address every blocking review issue below, re-verify, and update tasks/PROGRESS.md.
+Task: $line
+$feedback" "logs/$stamp-resume.log" || true)"
+  else
   line="$(next_line)"
   if [[ -z "$line" ]]; then echo "🎉 Backlog complete."; exit 0; fi
   if [[ "$line" == "## 🛑 CHECKPOINT"* ]]; then
@@ -70,9 +94,10 @@ for ((i = 1; i <= MAX_ITERS; i++)); do
 
   stamp="$(date +%Y%m%d-%H%M%S)"
   echo "▶ Iteration $i: $line"
-  out="$(build "Follow CLAUDE.md. Implement the next backlog task and verify it (it may be partly done from an interrupted run; finish it). Do not commit." "logs/$stamp-build.log" || true)"
+  out="$(build "Follow CLAUDE.md. Implement the next backlog task and verify it. Do not commit." "logs/$stamp-build.log" || true)"
+  fi
   if grep -qiE "hit your .*limit|usage limit" <<<"$out"; then
-    echo "⏸  Claude usage limit reached. Partial work left uncommitted. Rerun this script after the reset."; exit 2
+    pause "⏸  Claude usage limit reached. Partial work left uncommitted. Rerun this script after the reset to resume it." 2
   fi
   if grep -q "BLOCKED" <<<"$out"; then
     git add -A && git commit -qm "Blocked: $line" || true
@@ -86,7 +111,7 @@ for ((i = 1; i <= MAX_ITERS; i++)); do
     wait
 
     if grep -qiE "hit your .*limit" logs/$stamp-review$round-*.md; then
-      echo "⏸  Claude usage limit reached during review. Work left uncommitted. Rerun after the reset."; exit 2
+      pause "⏸  Claude usage limit reached during review. Work left uncommitted. Rerun after the reset to resume it." 2
     fi
     feedback=""
     for r in "${REVIEWERS[@]}"; do
@@ -108,10 +133,9 @@ $feedback" "logs/$stamp-fix$round.log" > /dev/null
   done
 
   if ! $approved; then
-    echo "⛔ Reviewers still not satisfied after $MAX_REVIEW_ROUNDS rounds. Changes left uncommitted; see logs/$stamp-review*.md"
-    exit 1
+    pause "⛔ Reviewers still not satisfied after $MAX_REVIEW_ROUNDS rounds. Changes left uncommitted; see logs/$stamp-review*.md. Rerun to give it more rounds, or fix by hand." 1
   fi
-  if [[ "$(next_line)" == "$line" ]]; then
+  if grep -qF -- "$line" tasks/BACKLOG.md; then
     echo "⚠️  Task was not marked done in the backlog. Stopping; see logs/$stamp-build.log"; exit 1
   fi
   id="$(sed -E 's/^- \[.\] \*\*([^ ]+) .*/\1/' <<<"$line")"
