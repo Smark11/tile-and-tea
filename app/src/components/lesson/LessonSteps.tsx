@@ -64,7 +64,7 @@ export function fitTileWidth(available: number, perRow: number): number {
   return Math.max(MIN_TILE, Math.min(MAX_TILE, width));
 }
 
-type SpreadTile = {
+export type SpreadTile = {
   kind: TileKind;
   selected?: boolean;
   hint?: boolean;
@@ -86,7 +86,7 @@ export function flowerCopies(kinds: readonly TileKind[]): (number | undefined)[]
  * Tiles laid out on the felt, sized to the space they have. Loose tiles sit in
  * balanced rows; grouped tiles sit together, a little apart from the next group.
  */
-function TileSpread({ tiles, groups }: { tiles: readonly SpreadTile[]; groups?: readonly number[] }) {
+export function TileSpread({ tiles, groups }: { tiles: readonly SpreadTile[]; groups?: readonly number[] }) {
   const [available, setAvailable] = useState(0);
   const copies = flowerCopies(tiles.map((t) => t.kind));
   const indexed = tiles.map((t, i) => ({ ...t, index: i }));
@@ -135,7 +135,7 @@ function TileSpread({ tiles, groups }: { tiles: readonly SpreadTile[]; groups?: 
 }
 
 /** Tiles to look at (not tap), with their caption read in place of tile names. */
-function TileDisplayView({ display }: { display: TileDisplay }) {
+export function TileDisplayView({ display }: { display: TileDisplay }) {
   return (
     <View style={styles.display}>
       <View accessible accessibilityRole="image" accessibilityLabel={display.caption}>

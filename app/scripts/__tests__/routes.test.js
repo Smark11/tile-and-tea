@@ -126,8 +126,9 @@ describe('dynamic routes', () => {
     expect(matchesPattern('/lesson/x/y', '/lesson/[id]')).toBe(false);
   });
 
-  it('finds the lesson route in src/app', () => {
+  it('finds the lesson and drill routes in src/app', () => {
     expect(discoverDynamicPatterns(path.join(__dirname, '..', '..', 'src', 'app'))).toEqual([
+      '/drill/[id]',
       '/lesson/[id]',
     ]);
   });

@@ -1,3 +1,4 @@
+import { DRILLS, drillPath } from '@/game/drills';
 import { LESSONS, lessonPath } from '@/game/lessons';
 
 import {
@@ -164,6 +165,17 @@ describe('sitemap and robots', () => {
     expect(robotsTxt(SITE)).toBe(
       'User-agent: *\nAllow: /\nDisallow: /dev/\n\nSitemap: https://example.com/sitemap.xml\n',
     );
+  });
+});
+
+describe('drill pages', () => {
+  const drillRoutes = Object.keys(ROUTE_META).filter((route) => route.startsWith('/drill/'));
+
+  it('lists exactly one unindexed page per drill, titled with the drill name', () => {
+    expect(drillRoutes.sort()).toEqual(DRILLS.map((d) => drillPath(d.id)).sort());
+    for (const drill of DRILLS) {
+      expect(ROUTE_META[drillPath(drill.id)]).toMatchObject({ title: drill.title, indexed: false });
+    }
   });
 });
 

@@ -47,6 +47,7 @@ export default function RootLayout() {
         <Stack.Protected guard={onboarded}>
           <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
           <Stack.Screen name="lesson/[id]" options={{ animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="drill/[id]" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen name="card" />
           <Stack.Screen
             name="settings"

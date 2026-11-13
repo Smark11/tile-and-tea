@@ -108,6 +108,14 @@ export const ROUTE_META: Readonly<Record<string, RouteMeta>> = {
       'The passes before the first discard: right, across, left, the optional second Charleston, blind passes, and the courtesy pass.',
     indexed: false,
   },
+  // One page per drill (src/app/drill/[id].tsx), behind the welcome tour like
+  // the lessons. siteMeta.test.ts checks this list against the drill catalog.
+  '/drill/name-the-hand': {
+    title: 'Name that hand',
+    description:
+      'A quick card-reading drill: a finished American Mah Jongg hand is on the table, so find its line on the practice card.',
+    indexed: false,
+  },
   // Behind the welcome tour like the lessons, so out of search until M6.2.
   '/card': {
     title: '2027 Practice Card',

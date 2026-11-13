@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { DrillComplete, DrillQuestionView } from '@/components/drill/DrillViews';
 import { LessonComplete } from '@/components/lesson/LessonComplete';
 import { FeedbackPanel, TapStepView, TilesStepView } from '@/components/lesson/LessonSteps';
 import { LessonPath } from '@/components/lesson/path/LessonPath';
@@ -27,6 +28,7 @@ import { Rack } from '@/components/rack/Rack';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { Tile, type TileSize } from '@/components/tile/Tile';
+import { currentAnswer, currentQuestion, nameTheHand, roundReducer, startRound } from '@/game/drills';
 import { createRng } from '@/game/rng';
 import {
   ALL_KINDS,
@@ -337,6 +339,40 @@ function LessonDemo() {
   );
 }
 
+/**
+ * A drill question after a miss (the pick and the answer both marked, with the
+ * coach's explanation) and after a best answer, then a finished round.
+ * Seeded, so it looks the same in every screenshot.
+ */
+function DrillDemo() {
+  const reduce = roundReducer(nameTheHand);
+  const start = startRound(nameTheHand, 2027);
+  const answerOf = (i: number) => (start.questions[i].data as { answer: number }).answer;
+  const missed = reduce(start, { type: 'tap', index: (answerOf(0) + 1) % 3 });
+  const second = reduce(reduce(missed, { type: 'next' }), { type: 'tap', index: answerOf(1) });
+  const states = [
+    { label: 'After a miss', state: missed },
+    { label: 'After the best answer', state: second },
+  ];
+  return (
+    <View style={styles.lessonDemo}>
+      {states.map(({ label, state }) => (
+        <View key={label} style={styles.lessonState}>
+          <Text variant="caption">{label}</Text>
+          <DrillQuestionView question={currentQuestion(state)} selected={state.selected} answer={currentAnswer(state)} onTap={() => {}} />
+        </View>
+      ))}
+      <DrillComplete
+        title={nameTheHand.title}
+        verdicts={['best', 'miss', 'best', 'good', 'best']}
+        score={{ best: 3, good: 1, miss: 1, questions: 5, score: 0.7 }}
+        onAgain={() => {}}
+        onLeave={() => {}}
+      />
+    </View>
+  );
+}
+
 export function Styleguide() {
   const { colors, scheme, shadows } = useTheme();
   const semantic = Object.entries(colors) as [keyof ThemeColors, string][];
@@ -365,6 +401,10 @@ export function Styleguide() {
 
       <Section title="Lesson pages">
         <LessonDemo />
+      </Section>
+
+      <Section title="Drill pages">
+        <DrillDemo />
       </Section>
 
       <Section title="Brand palette">

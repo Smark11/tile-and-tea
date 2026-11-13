@@ -33,14 +33,17 @@ import { Entrance, FeedbackPanel, TapStepView, TextStepView, TilesStepView } fro
 
 const BAR_SPRING = { damping: 22, stiffness: 160 };
 
-function CloseButton() {
+type CloseButtonProps = { label?: string; hint?: string; onPress?: () => void };
+
+/** The round close button at the top left of a lesson or a drill. */
+export function CloseButton({ label = 'Close lesson', hint = 'Your place is saved.', onPress = leaveLesson }: CloseButtonProps) {
   const { colors } = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Close lesson"
-      accessibilityHint="Your place is saved."
-      onPress={leaveLesson}
+      accessibilityLabel={label}
+      accessibilityHint={hint}
+      onPress={onPress}
       hitSlop={spacing.xs}
       style={({ pressed, hovered }) => [
         styles.close,
@@ -57,7 +60,16 @@ function CloseButton() {
 }
 
 /** A slim jade bar that springs forward as the player moves through the steps. */
-function StepProgress({ done, total }: { done: number; total: number }) {
+type StepProgressProps = {
+  done: number;
+  total: number;
+  /** Spoken name of the bar. */
+  label?: string;
+  /** Spoken unit: "Step 3 of 9". */
+  unit?: string;
+};
+
+export function StepProgress({ done, total, label = 'Lesson progress', unit = 'Step' }: StepProgressProps) {
   const { colors } = useTheme();
   const reduceMotion = useReducedMotion();
   const fraction = total === 0 ? 0 : done / total;
@@ -71,8 +83,8 @@ function StepProgress({ done, total }: { done: number; total: number }) {
       style={[styles.track, { backgroundColor: colors.surfaceSunken, borderColor: colors.border }]}
       accessible
       accessibilityRole="progressbar"
-      accessibilityLabel="Lesson progress"
-      accessibilityValue={{ min: 0, max: total, now: done, text: `Step ${done} of ${total}` }}
+      accessibilityLabel={label}
+      accessibilityValue={{ min: 0, max: total, now: done, text: `${unit} ${done} of ${total}` }}
     >
       <Animated.View style={[styles.fill, { backgroundColor: colors.primary }, fillStyle]}>
         <View style={[styles.fillShine, { backgroundColor: colors.gold }]} />
