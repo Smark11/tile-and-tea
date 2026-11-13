@@ -75,6 +75,15 @@ export const ROUTE_META: Readonly<Record<string, RouteMeta>> = {
       'How Tile & Tea counts visits without cookies, what it never collects, and how Do Not Track turns counting off.',
     indexed: true,
   },
+  // One page per lesson (src/app/lesson/[id].tsx). Lessons sit behind the
+  // welcome tour, so they stay out of search until M6.2's landing page.
+  // siteMeta.test.ts checks this list against the lesson catalog.
+  '/lesson/meet-the-tiles': {
+    title: 'Meet the tiles',
+    description:
+      'A hands-on first lesson: the three suits, the Winds and Dragons, Flowers, and Jokers in an American Mah Jongg set.',
+    indexed: false,
+  },
   '/settings': {
     title: 'Settings',
     description: 'Adjust haptics and replay the welcome tour.',

@@ -1,3 +1,5 @@
+import { LESSONS, lessonPath } from '@/game/lessons';
+
 import {
   buildPageHead,
   DEFAULT_SITE_URL,
@@ -162,5 +164,19 @@ describe('sitemap and robots', () => {
     expect(robotsTxt(SITE)).toBe(
       'User-agent: *\nAllow: /\nDisallow: /dev/\n\nSitemap: https://example.com/sitemap.xml\n',
     );
+  });
+});
+
+describe('lesson pages', () => {
+  // Checked here because siteMeta.ts can't import the catalog (Node runs it bare).
+  const lessonRoutes = Object.keys(ROUTE_META).filter((route) => route.startsWith('/lesson/'));
+
+  it('lists exactly one page per lesson, titled with the lesson name', () => {
+    expect(lessonRoutes.sort()).toEqual(LESSONS.map((l) => lessonPath(l.id)).sort());
+    for (const lesson of LESSONS) expect(ROUTE_META[lessonPath(lesson.id)].title).toBe(lesson.title);
+  });
+
+  it('keeps lessons out of search while they sit behind the welcome tour', () => {
+    for (const route of lessonRoutes) expect(ROUTE_META[route].indexed).toBe(false);
   });
 });

@@ -3,6 +3,19 @@ import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { LessonComplete } from '@/components/lesson/LessonComplete';
+import { FeedbackPanel, TapStepView, TilesStepView } from '@/components/lesson/LessonSteps';
+import {
+  correctIndexes,
+  feedbackMessage,
+  isSingleAnswer,
+  lessonReducer,
+  LESSONS,
+  startSession,
+  type Lesson,
+  type SessionAction,
+  type TapStep,
+} from '@/game/lessons';
 import { Rack } from '@/components/rack/Rack';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
@@ -228,6 +241,52 @@ function RackDemo() {
   );
 }
 
+/** Every lesson page state, frozen, so each can be reviewed without playing through. */
+function LessonDemo() {
+  const lesson = LESSONS[0];
+  const questions = lesson.steps.filter((s): s is TapStep => s.kind === 'tap');
+  const single = questions.find(isSingleAnswer)!;
+  const many = questions.find((s) => !isSingleAnswer(s))!;
+  const tiles = lesson.steps.find((s) => s.kind === 'tiles')!;
+  const after = (step: TapStep, taps: number[], extra: SessionAction[] = []) => {
+    const demo: Lesson = { ...lesson, steps: [step] };
+    const reduce = lessonReducer(demo);
+    const actions: SessionAction[] = [...taps.map((index) => ({ type: 'tap' as const, index })), ...extra];
+    return actions.reduce(reduce, startSession(demo));
+  };
+  const wrong = single.choices.findIndex((c) => !c.correct);
+  const right = single.choices.findIndex((c) => c.correct);
+  const manyRight = correctIndexes(many);
+  const states = [
+    { label: 'Answered', step: single, state: after(single, [right]) },
+    { label: 'A nudge after a miss', step: many, state: after(many, [manyRight[0]], [{ type: 'check' }]) },
+    { label: 'Answer shown after two misses', step: single, state: after(single, [wrong], [{ type: 'retry' }, { type: 'tap', index: wrong }]) },
+  ];
+  return (
+    <View style={styles.lessonDemo}>
+      {tiles.kind === 'tiles' && <TilesStepView step={tiles} />}
+      {states.map(({ label, step, state }) => {
+        const message = feedbackMessage(step, state);
+        return (
+          <View key={label} style={styles.lessonState}>
+            <Text variant="caption">{label}</Text>
+            <TapStepView
+              step={step}
+              selected={state.selected}
+              revealAnswer={state.feedback === 'revealed'}
+              settled={state.feedback === 'correct' || state.feedback === 'revealed'}
+              singleAnswer={isSingleAnswer(step)}
+              onTap={() => {}}
+            />
+            {message && <FeedbackPanel message={message} />}
+          </View>
+        );
+      })}
+      <LessonComplete lesson={lesson} score={{ firstTry: 2, questions: 3 }} onReplay={() => {}} />
+    </View>
+  );
+}
+
 export function Styleguide() {
   const { colors, scheme, shadows } = useTheme();
   const semantic = Object.entries(colors) as [keyof ThemeColors, string][];
@@ -248,6 +307,10 @@ export function Styleguide() {
 
       <Section title="Rack">
         <RackDemo />
+      </Section>
+
+      <Section title="Lesson pages">
+        <LessonDemo />
       </Section>
 
       <Section title="Brand palette">
@@ -418,6 +481,8 @@ const styles = StyleSheet.create({
   elevationCard: { flex: 1, paddingHorizontal: spacing.sm, alignItems: 'center' },
   buttons: { gap: spacing.md },
   felt: { gap: spacing.xl, paddingHorizontal: spacing.lg },
+  lessonDemo: { gap: spacing.xxl },
+  lessonState: { gap: spacing.md },
   rackDemo: { gap: spacing.md },
   tileGroup: { gap: spacing.md },
   tileRow: { flexDirection: 'row', justifyContent: 'center', gap: spacing.sm },

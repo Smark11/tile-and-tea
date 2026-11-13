@@ -93,6 +93,51 @@ function discoverRoutes(appDir) {
   return routesFromFiles(files);
 }
 
+/**
+ * The URL pattern of a screen with plain `[param]` segments, like
+ * `/lesson/[id]`, or null for anything else (static screens, catch-alls,
+ * layouts). Their real paths come from generateStaticParams, so siteMeta
+ * lists them by hand and these patterns check that list.
+ * @param {string} file
+ * @returns {string | null}
+ */
+function dynamicPatternForFile(file) {
+  if (!ROUTE_EXT.test(file)) return null;
+  const stem = file.replace(ROUTE_EXT, '').replace(/\.web$/, '');
+  if (/\.(test|spec)$/.test(stem) || NON_WEB_PLATFORM.test(stem)) return null;
+  const segments = stem.split('/');
+  const name = segments[segments.length - 1];
+  if (name.startsWith('_') || name.startsWith('+')) return null;
+  if (!segments.some((s) => /^\[[^.\]]+\]$/.test(s))) return null;
+  if (segments.some((s) => s.startsWith('[...'))) return null;
+  const urlSegments = segments.filter((s) => !/^\(.*\)$/.test(s));
+  if (urlSegments[urlSegments.length - 1] === 'index') urlSegments.pop();
+  return '/' + urlSegments.join('/');
+}
+
+/** @param {string} appDir absolute path to src/app */
+function discoverDynamicPatterns(appDir) {
+  const files = fs.readdirSync(appDir, { recursive: true, encoding: 'utf8' });
+  const patterns = new Set();
+  for (const file of files) {
+    const pattern = dynamicPatternForFile(file.split(path.sep).join('/'));
+    if (pattern) patterns.add(pattern);
+  }
+  return [...patterns].sort();
+}
+
+/**
+ * Whether a concrete path like `/lesson/meet-the-tiles` fills a pattern like
+ * `/lesson/[id]`.
+ * @param {string} route
+ * @param {string} pattern
+ */
+function matchesPattern(route, pattern) {
+  const a = route.split('/');
+  const b = pattern.split('/');
+  return a.length === b.length && b.every((seg, i) => (/^\[.+\]$/.test(seg) ? a[i] !== '' : seg === a[i]));
+}
+
 module.exports = {
   DEVICES,
   routeForFile,
@@ -100,4 +145,7 @@ module.exports = {
   screenshotName,
   screenshotFile,
   discoverRoutes,
+  dynamicPatternForFile,
+  discoverDynamicPatterns,
+  matchesPattern,
 };

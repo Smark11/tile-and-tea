@@ -11,9 +11,10 @@ import { createRequire } from 'node:module';
 import { chromium } from 'playwright';
 
 import { APP_ROOT, ONBOARDED_PREFERENCES, PREFERENCES_KEY, startExpoWeb } from './expo-web.mjs';
+import { ROUTE_META } from '../src/web/siteMeta.ts';
 
 const require = createRequire(import.meta.url);
-const { DEVICES, discoverRoutes, screenshotFile } = require('./routes.js');
+const { DEVICES, discoverDynamicPatterns, discoverRoutes, matchesPattern, screenshotFile } = require('./routes.js');
 
 const OUT_DIR = path.join(APP_ROOT, 'screenshots');
 const PORT = Number(process.env.SCREENSHOT_PORT ?? 8099);
@@ -88,9 +89,16 @@ async function capture(browser, baseUrl, route, scheme, device, timeout) {
 }
 
 async function main() {
+  const appDir = path.join(APP_ROOT, 'src', 'app');
+  // Dynamic screens (like /lesson/[id]) are captured through the pages
+  // siteMeta lists for them.
+  const patterns = discoverDynamicPatterns(appDir);
+  const dynamicPages = Object.keys(ROUTE_META).filter((route) =>
+    patterns.some((p) => matchesPattern(route, p)),
+  );
   const routes = process.env.SCREENSHOT_ROUTES
     ? process.env.SCREENSHOT_ROUTES.split(',').map((r) => r.trim())
-    : discoverRoutes(path.join(APP_ROOT, 'src', 'app'));
+    : [...discoverRoutes(appDir), ...dynamicPages];
   if (routes.length === 0) throw new Error('No static routes found in src/app.');
   const devices = process.env.SCREENSHOT_DEVICES
     ? process.env.SCREENSHOT_DEVICES.split(',').map((d) => d.trim())

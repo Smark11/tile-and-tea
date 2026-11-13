@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Text } from '@/components/Text';
 import { Tile } from '@/components/tile/Tile';
@@ -29,10 +30,12 @@ type FeltHeroProps = {
   tilesLabel: string;
   title: string;
   body: string;
+  /** A real action in place of the "Coming soon" label, once the tab has one. */
+  action?: { title: string; onPress: () => void };
 };
 
 /** The jade-felt card at the top of each tab, with a few tiles laid on it. */
-export function FeltHero({ tiles, tilesLabel, title, body }: FeltHeroProps) {
+export function FeltHero({ tiles, tilesLabel, title, body, action }: FeltHeroProps) {
   return (
     <Card tone="felt" elevation="high" style={styles.hero}>
       <View style={styles.tiles} accessible accessibilityRole="image" accessibilityLabel={tilesLabel}>
@@ -40,11 +43,16 @@ export function FeltHero({ tiles, tilesLabel, title, body }: FeltHeroProps) {
           <Tile key={i} kind={kind} size="M" />
         ))}
       </View>
-      <ComingSoon onFelt />
+      {!action && <ComingSoon onFelt />}
       <Text variant="title3" color="onFelt">
         {title}
       </Text>
       <Text color="onFeltMuted">{body}</Text>
+      {action && (
+        <View style={styles.heroAction}>
+          <Button title={action.title} variant="ivory" block onPress={action.onPress} />
+        </View>
+      )}
     </Card>
   );
 }
@@ -111,6 +119,7 @@ function PreviewRow({ item, index }: { item: PreviewItem; index?: number }) {
 
 const styles = StyleSheet.create({
   hero: { gap: spacing.md, paddingVertical: spacing.xl },
+  heroAction: { marginTop: spacing.sm },
   tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.sm },
   pill: {
     alignSelf: 'flex-start',

@@ -6,6 +6,9 @@ const {
   screenshotName,
   screenshotFile,
   discoverRoutes,
+  dynamicPatternForFile,
+  discoverDynamicPatterns,
+  matchesPattern,
 } = require('../routes');
 
 describe('screenshotFile', () => {
@@ -93,5 +96,39 @@ describe('screenshotName', () => {
 describe('discoverRoutes', () => {
   it('finds the real app routes', () => {
     expect(discoverRoutes(path.join(__dirname, '..', '..', 'src', 'app'))).toContain('/');
+  });
+});
+
+describe('dynamic routes', () => {
+  it.each([
+    ['lesson/[id].tsx', '/lesson/[id]'],
+    ['(tabs)/game/[id]/review.tsx', '/game/[id]/review'],
+    ['puzzle/[date]/index.tsx', '/puzzle/[date]'],
+  ])('%s → %s', (file, pattern) => {
+    expect(dynamicPatternForFile(file)).toBe(pattern);
+  });
+
+  it.each([
+    'settings.tsx',
+    '[...rest].tsx',
+    'lesson/[id].test.tsx',
+    'lesson/_layout.tsx',
+    'lesson/[id].ios.tsx',
+  ])('skips %s', (file) => {
+    expect(dynamicPatternForFile(file)).toBeNull();
+  });
+
+  it('matches concrete paths to patterns', () => {
+    expect(matchesPattern('/lesson/meet-the-tiles', '/lesson/[id]')).toBe(true);
+    expect(matchesPattern('/lesson', '/lesson/[id]')).toBe(false);
+    expect(matchesPattern('/lesson/', '/lesson/[id]')).toBe(false);
+    expect(matchesPattern('/lessons/x', '/lesson/[id]')).toBe(false);
+    expect(matchesPattern('/lesson/x/y', '/lesson/[id]')).toBe(false);
+  });
+
+  it('finds the lesson route in src/app', () => {
+    expect(discoverDynamicPatterns(path.join(__dirname, '..', '..', 'src', 'app'))).toEqual([
+      '/lesson/[id]',
+    ]);
   });
 });

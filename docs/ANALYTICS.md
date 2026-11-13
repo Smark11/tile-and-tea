@@ -55,8 +55,8 @@ Page views are sent automatically as `$pageview` every time the Expo Router path
 | Event | Properties | Fired when | Status |
 | --- | --- | --- | --- |
 | `onboarding_completed` | `via`: `'finished'` \| `'skipped'` | The player leaves the welcome tour through Get started or Skip. Replaying the tour from Settings fires it again. | Live (W.3) |
-| `lesson_started` | `lesson_id`: string | A lesson opens. | Planned: M1.1 |
-| `lesson_completed` | `lesson_id`: string | The last step of a lesson is done. | Planned: M1.1 |
+| `lesson_started` | `lesson_id`: string | A lesson opens (fresh or resumed), or the player picks "Go through it again". | Live (M1.1) |
+| `lesson_completed` | `lesson_id`: string | The player presses Finish on a lesson's last step. | Live (M1.1) |
 | `drill_answered` | `skill`: string, `correct`: boolean | The player submits one drill answer. | Planned: M3.1 |
 | `game_started` | `opponents`: bot level string | A new game is dealt. | Planned: M4.1/M4.2 |
 | `game_finished` | `opponents`: string, `result`: `'won'` \| `'lost'` \| `'wall_game'` \| `'dead_hand'` \| `'abandoned'` | A game ends in any way. | Planned: M4.1/M4.2 |

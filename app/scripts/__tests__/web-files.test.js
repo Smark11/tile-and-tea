@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const appJson = require('../../app.json');
-const { discoverRoutes } = require('../routes');
+const { discoverDynamicPatterns, discoverRoutes, matchesPattern } = require('../routes');
 const {
   ROUTE_META,
   SHARE_IMAGE,
@@ -33,8 +33,20 @@ describe('route metadata', () => {
     for (const route of routes) expect(Object.keys(ROUTE_META)).toContain(route);
   });
 
-  it('only lists routes that exist', () => {
-    for (const route of Object.keys(ROUTE_META)) expect(routes).toContain(route);
+  it('only lists routes that exist, as a static screen or a filled-in dynamic one', () => {
+    const patterns = discoverDynamicPatterns(path.join(APP_ROOT, 'src', 'app'));
+    for (const route of Object.keys(ROUTE_META)) {
+      const exists = routes.includes(route) || patterns.some((p) => matchesPattern(route, p));
+      expect({ route, exists }).toEqual({ route, exists: true });
+    }
+  });
+
+  it('lists at least one page for every dynamic screen', () => {
+    const patterns = discoverDynamicPatterns(path.join(APP_ROOT, 'src', 'app'));
+    for (const pattern of patterns) {
+      const pages = Object.keys(ROUTE_META).filter((route) => matchesPattern(route, pattern));
+      expect({ pattern, pages: pages.length > 0 }).toEqual({ pattern, pages: true });
+    }
   });
 });
 
