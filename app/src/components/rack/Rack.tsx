@@ -1,4 +1,13 @@
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import {
   StyleSheet,
   View,
@@ -39,8 +48,14 @@ export type RackProps = {
   selectedIds?: ReadonlySet<number>;
   hintIds?: ReadonlySet<number>;
   disabledIds?: ReadonlySet<number>;
+  /** Tiles that just arrived (a draw, a Charleston pass): they drop into place as they appear. */
+  freshIds?: ReadonlySet<number>;
   /** Show the "Sort by suit" control above the rack (default true). */
   showSort?: boolean;
+  /** The rack sits on the jade felt (the game table): the Sort button takes the felt's look in both schemes. */
+  onFelt?: boolean;
+  /** Shown at the start of the Sort button's row (e.g. the player's exposures), so the two share one line. */
+  toolbarStart?: ReactNode;
   testID?: string;
 };
 
@@ -75,11 +90,17 @@ type RackTileProps = {
   selected: boolean;
   hint: boolean;
   disabled: boolean;
+  /** Drops in from above when it first appears. */
+  fresh: boolean;
   onToggleSelect?: (tile: RackTileModel) => void;
   onMove: (id: number, delta: number) => void;
   onDrop: (order: number[]) => void;
   testID?: string;
 };
+
+// How far an arriving tile falls into its slot.
+const ARRIVE_DROP = 28;
+const ARRIVE_SPRING = { damping: 16, stiffness: 200, mass: 0.8 };
 
 const RackTile = memo(function RackTile({
   tile,
@@ -92,6 +113,7 @@ const RackTile = memo(function RackTile({
   selected,
   hint,
   disabled,
+  fresh,
   onToggleSelect,
   onMove,
   onDrop,
@@ -103,6 +125,12 @@ const RackTile = memo(function RackTile({
   const y = useSharedValue(start.y);
   const lift = useSharedValue(0);
   const dragStart = useSharedValue({ x: 0, y: 0 });
+  // 0 → 1 as a newly arrived tile settles. Only the first mount counts.
+  const [arrivesFresh] = useState(fresh && !reduceMotion);
+  const arrive = useSharedValue(arrivesFresh ? 0 : 1);
+  useEffect(() => {
+    if (arrivesFresh) arrive.set(withSpring(1, ARRIVE_SPRING));
+  }, [arrivesFresh, arrive]);
 
   // Glide to whichever slot `order` gives this tile: after a sort, or when a
   // dragged neighbour pushes it aside. The tile being dragged follows the
@@ -176,11 +204,13 @@ const RackTile = memo(function RackTile({
 
   const positionStyle = useAnimatedStyle(() => {
     const l = lift.get();
+    const a = arrive.get();
     return {
       zIndex: draggingId.get() === id ? 2 : 1,
+      opacity: Math.min(1, a * 1.5),
       transform: [
         { translateX: x.get() },
-        { translateY: y.get() - l * 6 },
+        { translateY: y.get() - l * 6 - (1 - a) * ARRIVE_DROP },
         { scale: 1 + l * 0.08 },
       ],
     };
@@ -244,7 +274,10 @@ export function Rack({
   selectedIds = EMPTY,
   hintIds = EMPTY,
   disabledIds = EMPTY,
+  freshIds = EMPTY,
   showSort = true,
+  onFelt = false,
+  toolbarStart,
   testID = 'rack',
 }: RackProps) {
   const reduceMotion = useReducedMotion();
@@ -301,15 +334,18 @@ export function Rack({
 
   return (
     <View style={styles.root} testID={testID}>
-      {showSort && (
+      {(showSort || toolbarStart) && (
         <View style={styles.toolbar}>
-          <Button
-            title={sorted ? 'Sorted by suit' : 'Sort by suit'}
-            variant="secondary"
-            disabled={sorted}
-            onPress={handleSort}
-            testID={`${testID}-sort`}
-          />
+          {toolbarStart !== undefined && <View style={styles.toolbarStart}>{toolbarStart}</View>}
+          {showSort && (
+            <Button
+              title={sorted ? 'Sorted by suit' : 'Sort by suit'}
+              variant={onFelt ? 'outlineOnFelt' : 'secondary'}
+              disabled={sorted}
+              onPress={handleSort}
+              testID={`${testID}-sort`}
+            />
+          )}
         </View>
       )}
       <View style={styles.tray}>
@@ -346,6 +382,7 @@ export function Rack({
                   selected={selectedIds.has(tile.id)}
                   hint={hintIds.has(tile.id)}
                   disabled={disabledIds.has(tile.id)}
+                  fresh={freshIds.has(tile.id)}
                   onToggleSelect={onToggleSelect}
                   onMove={handleMove}
                   onDrop={handleDrop}
@@ -362,7 +399,13 @@ export function Rack({
 
 const styles = StyleSheet.create({
   root: { gap: spacing.md },
-  toolbar: { flexDirection: 'row', justifyContent: 'flex-end' },
+  toolbar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
+    gap: spacing.md,
+  },
+  toolbarStart: { flex: 1 },
   tiles: { alignSelf: 'center', height: '100%' },
   tray: {
     paddingTop: TRAY_PADDING_TOP,

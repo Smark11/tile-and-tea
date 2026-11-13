@@ -75,11 +75,19 @@ describe('Button', () => {
 
   it('gives every variant a hover look that differs from idle and keeps its label color', () => {
     const theme = { colors: colors.light, shadows: shadows.light } as unknown as Theme;
-    for (const variant of ['primary', 'secondary', 'quiet', 'ivory', 'quietOnFelt'] as const) {
+    for (const variant of ['primary', 'secondary', 'quiet', 'ivory', 'outlineOnFelt', 'quietOnFelt'] as const) {
       const idle = variantStyles(variant, theme, 'idle');
       const hovered = variantStyles(variant, theme, 'hovered');
       expect(hovered.container).not.toEqual(idle.container);
       expect(hovered.label).toBe(idle.label);
+    }
+  });
+
+  it('draws the felt-only outline button the same in light and dark', () => {
+    const light = { colors: colors.light, shadows: shadows.light } as unknown as Theme;
+    const dark = { colors: colors.dark, shadows: shadows.dark } as unknown as Theme;
+    for (const state of ['idle', 'hovered', 'pressed'] as const) {
+      expect(variantStyles('outlineOnFelt', dark, state)).toEqual(variantStyles('outlineOnFelt', light, state));
     }
   });
 

@@ -1,4 +1,8 @@
-import { FeltHero, PreviewList, type PreviewItem } from '@/components/shell/Preview';
+import { router } from 'expo-router';
+
+import { StyleSheet, View } from 'react-native';
+
+import { ComingSoon, FeltHero, PreviewList, type PreviewItem } from '@/components/shell/Preview';
 import { TabScreen } from '@/components/shell/TabScreen';
 import type { TileKind } from '@/game/tiles';
 
@@ -23,9 +27,18 @@ export function PlayTab() {
         tiles={HERO_TILES}
         tilesLabel="The four winds: East, South, West, and North"
         title="A full game, at your pace"
-        body="Play American Mah Jongg against friendly computer opponents, with your coach close by whenever you’d like a hint."
+        body="Sit down with three friendly computer players: the Charleston, draws and discards, all the way to Mah Jongg."
+        action={{ title: 'Start a game', onPress: () => router.push('/game') }}
       />
+      {/* Opponent levels arrive with the bots (M4.2); today's table seats friendly stand-ins. */}
+      <View style={styles.soon}>
+        <ComingSoon />
+      </View>
       <PreviewList heading="Opponents" items={OPPONENTS} />
     </TabScreen>
   );
 }
+
+const styles = StyleSheet.create({
+  soon: { flexDirection: 'row', marginBottom: -8 },
+});

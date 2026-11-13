@@ -13,6 +13,10 @@ export const STAGE_COLUMN_WIDTH = 520;
 export const STAGE_FLOAT_MIN_HEIGHT = 640;
 /** Wide enough to show the wordmark beside the column without crowding it. */
 export const STAGE_WORDMARK_MIN_WIDTH = 1080;
+/** Width of the column while a screen asks for the wide stage (the game table). */
+export const STAGE_WIDE_WIDTH = 960;
+/** Body attribute that switches the column to the wide stage. */
+export const WIDE_STAGE_ATTR = 'data-wide-stage';
 
 function svgDataUri(svg: string): string {
   return `url("data:image/svg+xml,${encodeURIComponent(svg.replace(/\s+/g, ' '))}")`;
@@ -83,6 +87,11 @@ body {
     height: min(calc(100% - 64px), 1000px);
     border-radius: 28px;
   }
+}
+/* The game table widens the column (see useWideStage), so the felt and the
+   discards grow on desktop. */
+@media (min-width: ${STAGE_BREAKPOINT}px) {
+  body[${WIDE_STAGE_ATTR}] #root { width: min(${STAGE_WIDE_WIDTH}px, calc(100% - 64px)); }
 }
 @media (min-width: ${STAGE_WORDMARK_MIN_WIDTH}px) and (min-height: ${STAGE_FLOAT_MIN_HEIGHT}px) {
   /* Decorative wordmark in the corner of the table. The empty alt text after

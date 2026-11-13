@@ -21,7 +21,7 @@ const PORT = Number(process.env.SCREENSHOT_PORT ?? 8099);
 const SCHEMES = /** @type {const} */ (['light', 'dark']);
 const FIRST_LOAD_TIMEOUT_MS = 180_000; // first request triggers the web bundle build
 const SETTLE_MS = 1_000; // let entrance springs finish before capturing
-const MAX_SCROLL_FRAMES = 32; // extra below-the-fold captures per long screen (the styleguide is the longest)
+const MAX_SCROLL_FRAMES = 44; // extra below-the-fold captures per long screen (the styleguide is the longest)
 const WELCOME_ROUTE = '/welcome';
 
 /**
@@ -35,6 +35,20 @@ const WELCOME_ROUTE = '/welcome';
 const ANSWERED = {
   '/drill/charleston': { seed: 2, picks: [0, 1, 2] },
   '/drill/discards': { seed: 2, picks: [0] },
+};
+
+/**
+ * Extra states of a screen, each captured as its own file (route + `-name`).
+ * The game table opens on the Charleston, so the mid-game tables come from
+ * `?demo=` (src/game/table/demo.ts): East to discard with a tile picked, a
+ * discard still open to a call, and West's turn.
+ */
+const STATES = {
+  '/game': [
+    { name: 'play-yours', query: 'demo=yours', tap: '[data-testid^="table-rack-tile-"]:not([aria-label*="Joker"])', waitFor: 'table-discard' },
+    { name: 'play-open', query: 'demo=open' },
+    { name: 'play-theirs', query: 'demo=theirs' },
+  ],
 };
 
 /** Pages through the tallest scroller from the top, capturing frames from `first` on; returns the next frame number. */
@@ -124,6 +138,23 @@ async function capture(browser, baseUrl, route, scheme, device, timeout) {
       await page.screenshot({ path: file });
       log(`✓ ${path.relative(APP_ROOT, file)} (answered)`);
       await captureScrollFrames(page, route, scheme, device, next + 1);
+    }
+
+    for (const state of STATES[route] ?? []) {
+      await page.goto(`${baseUrl}${route}?${state.query}`, { waitUntil: 'networkidle', timeout });
+      await page.getByTestId('table-prompt').waitFor({ timeout });
+      await page.evaluate(() => document.fonts.ready);
+      await page.waitForTimeout(SETTLE_MS);
+      if (state.tap) {
+        await page.locator(state.tap).last().click();
+        if (state.waitFor) await page.getByTestId(state.waitFor).waitFor({ timeout });
+        await page.waitForTimeout(SETTLE_MS);
+      }
+      const stateRoute = `${route}-${state.name}`;
+      const file = path.join(OUT_DIR, screenshotFile(stateRoute, scheme, device));
+      await page.screenshot({ path: file });
+      log(`✓ ${path.relative(APP_ROOT, file)}`);
+      await captureScrollFrames(page, stateRoute, scheme, device, 2);
     }
   } finally {
     await context.close();

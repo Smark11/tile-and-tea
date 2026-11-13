@@ -28,7 +28,9 @@ import { SkillMeters, type SkillMeterItem } from '@/components/progress/SkillMet
 import { Rack } from '@/components/rack/Rack';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
+import { GameTable } from '@/components/table/GameTable';
 import { Tile, type TileSize } from '@/components/tile/Tile';
+import { DEMO_TABLE_SEED, midGameTable } from '@/game/table';
 import {
   bestHand,
   charleston,
@@ -473,6 +475,12 @@ const SAMPLE_RATINGS: readonly (SkillRating | undefined)[] = [
   undefined,
 ];
 
+/** The table mid-game (stand-ins frozen): East to discard, with exposures on two seats. */
+function GameTableDemo() {
+  const initial = useMemo(() => midGameTable(), []);
+  return <GameTable seed={DEMO_TABLE_SEED} initial={initial} autoplay={false} scroll={false} />;
+}
+
 function SkillMetersDemo() {
   const items: SkillMeterItem[] = SKILLS.flatMap((skill, i) => {
     const drill = drillForSkill(skill.id);
@@ -529,6 +537,10 @@ export function Styleguide() {
 
       <Section title="Skill meters">
         <SkillMetersDemo />
+      </Section>
+
+      <Section title="Game table">
+        <GameTableDemo />
       </Section>
 
       <Section title="Brand palette">

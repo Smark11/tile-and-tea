@@ -12,10 +12,11 @@ import { minTouchTarget, radii, spacing, useTheme, type Theme } from '@/theme';
 import { Text, type TextColor } from './Text';
 
 /**
- * `ivory` and `quietOnFelt` are for jade felt, where jade text wouldn't read:
- * `ivory` is the main action, finished like a tile face in both schemes.
+ * `ivory`, `outlineOnFelt` and `quietOnFelt` are for jade felt, where jade
+ * text wouldn't read. They look the same in both schemes, like the felt:
+ * `ivory` is the main action, finished like a tile face.
  */
-export type ButtonVariant = 'primary' | 'secondary' | 'quiet' | 'ivory' | 'quietOnFelt';
+export type ButtonVariant = 'primary' | 'secondary' | 'quiet' | 'ivory' | 'outlineOnFelt' | 'quietOnFelt';
 
 export type ButtonProps = Omit<PressableProps, 'children' | 'style'> & {
   title: string;
@@ -78,6 +79,21 @@ export function variantStyles(variant: ButtonVariant, { colors, shadows }: Theme
           boxShadow: `inset 0px -2px 0px ${colors.tileEdge}, ${hovered ? shadows.high : shadows.medium}`,
         },
         label: 'felt' as TextColor,
+      };
+    case 'outlineOnFelt':
+      // A secondary action on the felt, the same in both schemes: an ivory
+      // hairline on a faint wash, so it reads as a button without competing with `ivory`.
+      return {
+        container: {
+          backgroundColor: pressed
+            ? 'rgba(247, 241, 227, 0.16)'
+            : hovered
+              ? 'rgba(247, 241, 227, 0.10)'
+              : 'rgba(247, 241, 227, 0.05)',
+          borderColor: hovered ? 'rgba(247, 241, 227, 0.55)' : 'rgba(247, 241, 227, 0.32)',
+          borderWidth: StyleSheet.hairlineWidth * 2,
+        },
+        label: 'onFelt' as TextColor,
       };
     case 'quietOnFelt':
       return {

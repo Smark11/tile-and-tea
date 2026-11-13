@@ -49,6 +49,7 @@ export default function RootLayout() {
           <Stack.Screen name="lesson/[id]" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen name="drill/[id]" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen name="card" />
+          <Stack.Screen name="game" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen
             name="settings"
             options={{

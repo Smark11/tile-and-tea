@@ -30,11 +30,14 @@ describe('tab screens', () => {
     expect(router.push).toHaveBeenCalledWith('/settings');
   });
 
-  it('marks unbuilt features as coming soon and offers no dead controls', async () => {
+  it('starts a game from the Play tab, and marks the opponent levels as coming soon', async () => {
+    const { router } = jest.requireMock('expo-router');
     await render(<PlayRoute />);
     expect(screen.getAllByText('Coming soon').length).toBeGreaterThan(0);
-    // Only the Settings button is pressable on a placeholder tab.
-    expect(screen.getAllByRole('button')).toHaveLength(1);
+    // Settings and Start a game; the opponent previews aren't dead controls.
+    expect(screen.getAllByRole('button')).toHaveLength(2);
+    await fireEvent.press(screen.getByRole('button', { name: 'Start a game' }));
+    expect(router.push).toHaveBeenCalledWith('/game');
   });
 
   it('lays out the first lessons in order on the path', async () => {

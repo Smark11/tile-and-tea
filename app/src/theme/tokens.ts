@@ -28,6 +28,9 @@ export const minTouchTarget = 48;
 /** Widest a column of content gets on tablets and web. */
 export const maxContentWidth = 640;
 
+/** Widest the game table gets: wider than a reading column, so the felt and discards grow on desktop. */
+export const maxTableWidth = 960;
+
 export type Elevation = 'low' | 'medium' | 'high';
 
 // Layered, jade-tinted shadows read as warm daylight instead of grey smudge.

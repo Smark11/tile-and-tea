@@ -59,8 +59,8 @@ Page views are sent automatically as `$pageview` every time the Expo Router path
 | `lesson_completed` | `lesson_id`: string | The player presses Finish on a lesson's last step. | Live (M1.1) |
 | `drill_answered` | `skill`: string (`'card-reading'`, `'hand-choice'`, `'charleston'`, `'discards'`), `correct`: boolean | The player answers one drill question (a tap, or Check on a multi-pick question). `correct` is true for the best answer or a sound one, and false for a miss. | Live (M3.1) |
 | `skill_level_reached` | `skill`: string (as above), `level`: `'finding_feet'` \| `'steady'` \| `'confident'` \| `'sharp'` \| `'expert'` | A drill answer lifts that skill's rating into a higher band. It fires on every upward crossing, so a player hovering at a band edge can send it more than once; count unique players. The first answer of a never-rated skill doesn't fire it. | Live (M3.5) |
-| `game_started` | `opponents`: bot level string | A new game is dealt. | Planned: M4.1/M4.2 |
-| `game_finished` | `opponents`: string, `result`: `'won'` \| `'lost'` \| `'wall_game'` \| `'dead_hand'` \| `'abandoned'` | A game ends in any way. | Planned: M4.1/M4.2 |
+| `game_started` | `opponents`: bot level string (`'stand_in'` until M4.2 adds `'beginner'`, `'club'`, `'shark'`) | A new game is dealt at the `/game` table (including "Deal again"). The styleguide's frozen table never fires it. | Live (M4.1) |
+| `game_finished` | `opponents`: string, `result`: `'won'` \| `'lost'` \| `'wall_game'` \| `'dead_hand'` \| `'abandoned'` | A game ends in any way, once per game. `abandoned` means the player left mid-game with the close button. `dead_hand` means three hands went dead. | Live (M4.1) |
 | `share_clicked` | `surface`: `'lesson'` \| `'drill_streak'` \| `'game'` \| `'puzzle'` | The player taps Share. | Planned: M6.3 |
 
 ### Adding an event

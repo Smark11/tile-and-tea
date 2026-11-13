@@ -33,11 +33,23 @@ import { Entrance, FeedbackPanel, TapStepView, TextStepView, TilesStepView } fro
 
 const BAR_SPRING = { damping: 22, stiffness: 160 };
 
-type CloseButtonProps = { label?: string; hint?: string; onPress?: () => void };
+type CloseButtonProps = {
+  label?: string;
+  hint?: string;
+  onPress?: () => void;
+  /** Drawn in ivory for a screen painted as felt, like the game table. */
+  onFelt?: boolean;
+};
 
-/** The round close button at the top left of a lesson or a drill. */
-export function CloseButton({ label = 'Close lesson', hint = 'Your place is saved.', onPress = leaveLesson }: CloseButtonProps) {
+/** The round close button at the top left of a lesson, a drill or the game table. */
+export function CloseButton({
+  label = 'Close lesson',
+  hint = 'Your place is saved.',
+  onPress = leaveLesson,
+  onFelt = false,
+}: CloseButtonProps) {
   const { colors } = useTheme();
+  const pressedFill = onFelt ? 'rgba(247, 241, 227, 0.14)' : colors.surfaceSunken;
   return (
     <Pressable
       accessibilityRole="button"
@@ -48,12 +60,17 @@ export function CloseButton({ label = 'Close lesson', hint = 'Your place is save
       style={({ pressed, hovered }) => [
         styles.close,
         {
-          backgroundColor: pressed || hovered ? colors.surfaceSunken : 'transparent',
+          backgroundColor: pressed || hovered ? pressedFill : 'transparent',
         },
       ]}
     >
       <Svg width={22} height={22} viewBox="0 0 24 24">
-        <Path d="M6 6l12 12M18 6L6 18" stroke={colors.text} strokeWidth={2} strokeLinecap="round" />
+        <Path
+          d="M6 6l12 12M18 6L6 18"
+          stroke={onFelt ? colors.onFelt : colors.text}
+          strokeWidth={2}
+          strokeLinecap="round"
+        />
       </Svg>
     </Pressable>
   );

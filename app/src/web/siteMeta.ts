@@ -141,6 +141,13 @@ export const ROUTE_META: Readonly<Record<string, RouteMeta>> = {
       'Forty original American Mah Jongg hands to practice with: year hands, 2468, like numbers, runs, quints, winds and dragons, and more.',
     indexed: false,
   },
+  // A live game against stand-in players; nothing for search to index.
+  '/game': {
+    title: 'Practice table',
+    description:
+      'Sit down at a four-seat American Mah Jongg table: Charleston, draws, discards and Mah Jongg against friendly computer players.',
+    indexed: false,
+  },
   '/settings': {
     title: 'Settings',
     description: 'Adjust haptics and replay the welcome tour.',
