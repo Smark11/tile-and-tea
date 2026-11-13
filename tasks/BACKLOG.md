@@ -38,7 +38,7 @@ A line `## 🛑 CHECKPOINT` means: stop the loop, so the human can try the app b
 - [x] **M2.3 Hand distance.** For a partial rack, compute tiles-away for every card hand (joker-aware). Fast enough for real-time (<16ms for one rack on mid-range phone; benchmark test).
 - [x] **M2.4 Game state machine.** Deal → Charleston (both + courtesy) → play/call/expose/joker-swap → Mah Jongg / wall game / dead hand. Pure TS reducer, fully tested.
 
-## 🛑 CHECKPOINT: review the practice card and rules accuracy with a real player.
+## ✅ CHECKPOINT PASSED: review the practice card and rules accuracy with a real player.
 
 ## M3: Train
 
