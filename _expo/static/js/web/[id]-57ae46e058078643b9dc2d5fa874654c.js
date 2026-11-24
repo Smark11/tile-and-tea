@@ -1,0 +1,1 @@
+__d(function(g,r,i,a,m,e,d){"use strict";Object.defineProperty(e,'__esModule',{value:!0}),Object.defineProperty(e,"default",{enumerable:!0,get:function(){return n.DrillScreen}}),e.generateStaticParams=function(){return t.DRILL_ORDER.map(t=>({id:t}))};var t=r(d[0]),n=r(d[1])},766,[805,879]);

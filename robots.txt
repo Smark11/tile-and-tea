@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /dev/
+
+Sitemap: https://smark11.github.io/tile-and-tea/sitemap.xml
