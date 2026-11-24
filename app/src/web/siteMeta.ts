@@ -221,6 +221,13 @@ export const ROUTE_META: Readonly<Record<string, RouteMeta>> = {
     indexed: false,
   },
   // Behind the welcome tour like the lessons, so out of search until M6.2.
+  // Personal progress on every principle; behind the welcome tour.
+  '/playbook': {
+    title: 'Your winning playbook',
+    description:
+      'Every principle of winning American Mah Jongg play in one place: the rule, the evidence for it, and the scenario or drill that teaches it.',
+    indexed: false,
+  },
   '/card': {
     title: '2027 Practice Card',
     description:

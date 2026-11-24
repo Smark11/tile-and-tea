@@ -1,0 +1,22 @@
+{
+  "mjc.scenarios": {
+    "state": {
+      "completed": {
+        "pass-what-touches-nothing": { "plays": 2, "verdict": "best", "finishedAt": 1764000000000 },
+        "a-flower-is-not-a-stray": { "plays": 1, "verdict": "good", "finishedAt": 1764000100000 },
+        "keep-doors-open": { "plays": 1, "verdict": "best", "finishedAt": 1764000200000 },
+        "closest-beats-richest": { "plays": 1, "verdict": "best", "finishedAt": 1764000300000 }
+      }
+    },
+    "version": 1
+  },
+  "mjc.drills": {
+    "state": {
+      "ratings": {
+        "charleston": { "rating": 1062, "answers": 24, "roundStart": 1031 },
+        "hand-choice": { "rating": 921, "answers": 9, "roundStart": 902 }
+      }
+    },
+    "version": 2
+  }
+}

@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 
 import { DrillList } from '@/components/drill/DrillList';
+import { PlaybookLink } from '@/components/playbook/PlaybookLink';
 import { ScenarioList } from '@/components/scenario/ScenarioList';
 import { FeltHero } from '@/components/shell/Preview';
 import { TabScreen } from '@/components/shell/TabScreen';
@@ -36,6 +37,7 @@ export function TrainTab() {
       />
       <ScenarioOfTheDay scenario={today} record={completed[today.id]} onOpen={openScenario} />
       <ScenarioList completed={completed} onOpen={openScenario} />
+      <PlaybookLink from="train" />
       <DrillList drills={DRILLS} onOpen={openDrill} intro="Endless practice for the same skills, with a rating that moves as you improve." />
     </TabScreen>
   );

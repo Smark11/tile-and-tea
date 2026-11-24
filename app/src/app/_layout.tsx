@@ -53,6 +53,7 @@ export default function RootLayout() {
           <Stack.Screen name="drill/[id]" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen name="scenario/[id]" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen name="card" />
+          <Stack.Screen name="playbook" />
           <Stack.Screen name="game" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen
             name="settings"

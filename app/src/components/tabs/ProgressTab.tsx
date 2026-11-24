@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Card } from '@/components/Card';
+import { PlaybookLink } from '@/components/playbook/PlaybookLink';
 import { SkillMeters, type SkillMeterItem } from '@/components/progress/SkillMeters';
 import { FeltHero } from '@/components/shell/Preview';
 import { TabScreen } from '@/components/shell/TabScreen';
@@ -79,6 +80,9 @@ export function ProgressTab() {
           Ratings start at {START_RATING} and move with every drill answer. A strong answer on a harder drill counts for more,
           and once a skill settles, one rough round only nudges it.
         </Text>
+      </View>
+      <View style={styles.section}>
+        <PlaybookLink from="progress" />
       </View>
     </TabScreen>
   );

@@ -26,6 +26,8 @@ const WELCOME_ROUTE = '/welcome';
 /** The saved-game store's key (src/state/savedGame.ts) and a mid-game save for the resume states. */
 const SAVED_GAME_KEY = 'mjc.game';
 const SAVED_GAME_FIXTURE = JSON.parse(fs.readFileSync(path.join(APP_ROOT, 'scripts', 'fixtures', 'saved-game.json'), 'utf8'));
+/** Saved scenario and skill progress, one save per store key, for the mastered playbook (pinned in playbook.test.ts). */
+const PLAYBOOK_PROGRESS = JSON.parse(fs.readFileSync(path.join(APP_ROOT, 'scripts', 'fixtures', 'playbook-progress.json'), 'utf8'));
 
 /**
  * Screens whose answered state needs its own capture. The route loads with a
@@ -47,6 +49,9 @@ const ANSWERED = {
  * discard still open to a call, and West's turn.
  */
 const STATES = {
+  // `storage`: seed these saves first. Two principles mastered (C1, C3), others half done.
+  '/playbook': [{ name: 'progress', query: '', storage: PLAYBOOK_PROGRESS, ready: 'playbook-mastered' }],
+  '/progress': [{ name: 'playbook', query: '', storage: PLAYBOOK_PROGRESS, ready: 'playbook-link-progress' }],
   // `saved`: seed the fixture save first (scripts/fixtures/saved-game.json, pinned in saved.test.ts).
   '/play': [{ name: 'resume', query: '', saved: true, ready: 'play-resume' }],
   // A scenario opens on its scene; `?step=` opens the move, or the strategy with the taught move made.
@@ -176,8 +181,13 @@ async function capture(browser, baseUrl, route, scheme, device, timeout) {
         );
         seeded = true;
       }
+      if (state.storage) {
+        await context.addInitScript((entries) => {
+          for (const [key, value] of Object.entries(entries)) window.localStorage.setItem(key, JSON.stringify(value));
+        }, state.storage);
+      }
       await page.goto(`${baseUrl}${route}${state.query ? `?${state.query}` : ''}`, { waitUntil: 'networkidle', timeout });
-      await page.getByTestId(state.ready ?? 'table-prompt').waitFor({ timeout });
+      await page.getByTestId(state.ready ?? 'table-prompt').first().waitFor({ timeout });
       await page.evaluate(() => document.fonts.ready);
       await page.waitForTimeout(SETTLE_MS);
       if (state.tap) {

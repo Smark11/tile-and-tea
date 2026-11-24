@@ -17,6 +17,9 @@ export type CallClaim = 'pung' | 'kong' | 'quint' | 'sextet' | 'mah_jongg';
 /** How the coach judged a scenario's move. */
 export type ScenarioVerdict = 'best' | 'good' | 'miss';
 
+/** Where the playbook was opened from. */
+export type PlaybookSource = 'train' | 'progress' | 'link';
+
 /** The screen a Share button sat on. */
 export type ShareSurface = 'lesson' | 'drill_streak' | 'game' | 'puzzle';
 
@@ -33,6 +36,8 @@ export type AnalyticsEvents = {
   scenario_started: { scenario_id: string };
   /** The player made the scenario's move and reached its strategy. `verdict` is the coach's call on the move. */
   scenario_completed: { scenario_id: string; verdict: ScenarioVerdict };
+  /** The playbook screen opened. `from` is the tab whose link opened it, or 'link' for a direct visit. */
+  playbook_opened: { from: PlaybookSource };
   /** `opponents` is the bot level, e.g. 'beginner'. */
   game_started: { opponents: string };
   /** The player sat back down to their saved game. */
@@ -57,6 +62,7 @@ export const ANALYTICS_EVENT_NAMES = [
   'skill_level_reached',
   'scenario_started',
   'scenario_completed',
+  'playbook_opened',
   'game_started',
   'game_resumed',
   'game_finished',
