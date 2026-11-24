@@ -214,7 +214,11 @@ export function generateCharleston(seed: number, card: PracticeCard = CURRENT_CA
     if (isFairQuestion(analyzeRack(dealt, card))) rack = dealt;
   }
   if (!rack) throw new Error(`No fair Charleston rack for seed ${seed}`);
+  return charlestonQuestion(rack, seed);
+}
 
+/** The question a dealt rack asks, as the drill deals it and as a scenario (game/scenarios) sets it. */
+export function charlestonQuestion(rack: readonly TileKind[], seed = 0): DrillQuestion<CharlestonData> {
   const { groups } = rackGroups(rack);
   const choices: DrillChoice[] = rack.map((tile) =>
     isJoker(tile) ? { kind: 'tile', tile, locked: 'Jokers are never passed.' } : { kind: 'tile', tile },

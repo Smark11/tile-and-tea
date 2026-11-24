@@ -3,7 +3,7 @@
 #
 # For each backlog task:
 #   1. Builder agent implements it (doesn't commit).
-#   2. Design, Rules/IP and Code reviewers run in parallel. They're read-only
+#   2. Design, Rules/IP, Code and Winning-Strategy reviewers run in parallel. They're read-only
 #      and must end with "VERDICT: APPROVE" or "VERDICT: CHANGES_REQUESTED".
 #   3. If any reviewer requests changes, the builder fixes them and the
 #      reviewers run again (up to MAX_REVIEW_ROUNDS).
@@ -21,7 +21,7 @@ MAX_REVIEW_ROUNDS="${MAX_REVIEW_ROUNDS:-3}"
 BUILD_BUDGET="${BUILD_BUDGET:-8}"     # USD cap per builder run
 REVIEW_BUDGET="${REVIEW_BUDGET:-2}"   # USD cap per reviewer run
 MODEL="${MODEL:-opus}"
-REVIEWERS=(design rules code)
+REVIEWERS=(design rules code strategy)
 mkdir -p logs
 
 BUILDER_TOOLS="Read Edit Write Glob Grep Bash(npm *) Bash(npx *) Bash(git status*) Bash(git diff*) Bash(git log*) Bash(ls *) Bash(cat *) Bash(mkdir *) Bash(rm *) Bash(mv *) Bash(node *) WebFetch(domain:docs.expo.dev) WebFetch(domain:reactnative.dev)"
@@ -72,7 +72,8 @@ for ((i = 1; i <= MAX_ITERS; i++)); do
     echo "↻ Resuming: $line"
     # Feed back the rejecting reviews from the last round, if there was one.
     feedback=""
-    last="$(ls logs/$stamp-review*-*.md 2>/dev/null | sed -E 's/.*review([0-9]+)-.*/\1/' | sort -n | tail -1)"
+    # `|| true`: a task resumed before any review has no such logs, and pipefail would end the script here.
+    last="$(ls logs/$stamp-review*-*.md 2>/dev/null | sed -E 's/.*review([0-9]+)-.*/\1/' | sort -n | tail -1 || true)"
     if [[ -n "$last" ]]; then
       for f in logs/$stamp-review$last-*.md; do
         grep -q "VERDICT: APPROVE" "$f" || feedback+=$'\n\n'"### $(basename "$f")"$'\n'"$(cat "$f")"
@@ -139,7 +140,7 @@ $feedback" "logs/$stamp-fix$round.log" > /dev/null
     echo "⚠️  Task was not marked done in the backlog. Stopping; see logs/$stamp-build.log"; exit 1
   fi
   id="$(sed -E 's/^- \[.\] \*\*([^ ]+) .*/\1/' <<<"$line")"
-  git add -A && git commit -qm "$id: reviewed and approved (design, rules, code)"
+  git add -A && git commit -qm "$id: reviewed and approved (design, rules, code, strategy)"
   echo "  📦 Committed $id"
 done
 echo "Reached MAX_ITERS=$MAX_ITERS."

@@ -49,6 +49,15 @@ const ANSWERED = {
 const STATES = {
   // `saved`: seed the fixture save first (scripts/fixtures/saved-game.json, pinned in saved.test.ts).
   '/play': [{ name: 'resume', query: '', saved: true, ready: 'play-resume' }],
+  // A scenario opens on its scene; `?step=` opens the move, or the strategy with the taught move made.
+  '/scenario/pass-what-touches-nothing': [
+    { name: 'move', query: 'step=move', ready: 'scenario-move' },
+    { name: 'strategy', query: 'step=strategy', ready: 'scenario-strategy' },
+  ],
+  '/scenario/count-whats-gone': [
+    { name: 'move', query: 'step=move', ready: 'scenario-move' },
+    { name: 'strategy', query: 'step=strategy', ready: 'scenario-strategy' },
+  ],
   '/game': [
     { name: 'play-resumed', query: '', saved: true },
     { name: 'play-yours', query: 'demo=yours', tap: '[data-testid^="table-rack-tile-"]:not([aria-label*="Joker"])', waitFor: 'table-discard' },

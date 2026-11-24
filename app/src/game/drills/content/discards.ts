@@ -422,7 +422,11 @@ export function generateDiscard(seed: number, card: PracticeCard = CURRENT_CARD)
     if (isFairQuestion(analyzeTable(dealt, card))) data = dealt;
   }
   if (!data) throw new Error(`No fair discard table for seed ${seed}`);
+  return discardQuestion(data, seed);
+}
 
+/** The question a table asks, as the drill deals it and as a scenario (game/scenarios) sets it. */
+export function discardQuestion(data: DiscardData, seed = 0): DrillQuestion<DiscardData> {
   const { groups } = rackGroups(data.rack);
   const choices: DrillChoice[] = data.rack.map((tile) =>
     isJoker(tile) ? { kind: 'tile', tile, locked: 'Keep your Jokers: each can fill any pung, kong or quint.' } : { kind: 'tile', tile },

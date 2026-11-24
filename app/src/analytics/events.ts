@@ -14,6 +14,9 @@ export type GameResult = 'won' | 'lost' | 'wall_game' | 'dead_hand' | 'abandoned
 /** What the player called a discard for. */
 export type CallClaim = 'pung' | 'kong' | 'quint' | 'sextet' | 'mah_jongg';
 
+/** How the coach judged a scenario's move. */
+export type ScenarioVerdict = 'best' | 'good' | 'miss';
+
 /** The screen a Share button sat on. */
 export type ShareSurface = 'lesson' | 'drill_streak' | 'game' | 'puzzle';
 
@@ -26,6 +29,10 @@ export type AnalyticsEvents = {
   drill_answered: { skill: string; correct: boolean };
   /** A drill answer lifted a skill's rating into a higher band. `level` is the band's id, e.g. 'steady'. */
   skill_level_reached: { skill: string; level: string };
+  /** A scenario opened on its scene (a replay included). */
+  scenario_started: { scenario_id: string };
+  /** The player made the scenario's move and reached its strategy. `verdict` is the coach's call on the move. */
+  scenario_completed: { scenario_id: string; verdict: ScenarioVerdict };
   /** `opponents` is the bot level, e.g. 'beginner'. */
   game_started: { opponents: string };
   /** The player sat back down to their saved game. */
@@ -48,6 +55,8 @@ export const ANALYTICS_EVENT_NAMES = [
   'lesson_completed',
   'drill_answered',
   'skill_level_reached',
+  'scenario_started',
+  'scenario_completed',
   'game_started',
   'game_resumed',
   'game_finished',

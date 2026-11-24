@@ -40,14 +40,18 @@ export default function RootLayout() {
         screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}
       >
         {/* Exactly one of these groups is reachable. Finishing or replaying the
-            welcome tour flips `onboarded`, and the router moves to the other. */}
-        <Stack.Protected guard={!onboarded}>
+            welcome tour flips `onboarded`, and the router moves to the other.
+            Each group names where its unreachable screens send people: without
+            `redirectTo`, the router falls back to the first unguarded screen,
+            which put first-time visitors on the privacy page. */}
+        <Stack.Protected guard={!onboarded} redirectTo="/">
           <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
         </Stack.Protected>
-        <Stack.Protected guard={onboarded}>
+        <Stack.Protected guard={onboarded} redirectTo="/welcome">
           <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
           <Stack.Screen name="lesson/[id]" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen name="drill/[id]" options={{ animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="scenario/[id]" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen name="card" />
           <Stack.Screen name="game" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen

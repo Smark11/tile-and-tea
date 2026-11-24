@@ -59,12 +59,22 @@ function DrillRow({ drill, onOpen }: { drill: AnyDrill; onOpen: (drill: AnyDrill
   );
 }
 
+type DrillListProps = {
+  drills: readonly AnyDrill[];
+  onOpen: (drill: AnyDrill) => void;
+  /** One line under the heading on what drills are for. */
+  intro?: string;
+};
+
 /** The drills ready to play, as a grouped list of tappable rows. */
-export function DrillList({ drills, onOpen }: { drills: readonly AnyDrill[]; onOpen: (drill: AnyDrill) => void }) {
+export function DrillList({ drills, onOpen, intro }: DrillListProps) {
   const { colors } = useTheme();
   return (
     <View style={styles.section}>
-      <Text variant="title3">Drills</Text>
+      <View style={styles.heading}>
+        <Text variant="title3">Drills</Text>
+        {intro && <Text variant="caption">{intro}</Text>}
+      </View>
       <Card elevation="low" style={styles.list}>
         {drills.map((drill, i) => (
           <Fragment key={drill.id}>
@@ -79,6 +89,7 @@ export function DrillList({ drills, onOpen }: { drills: readonly AnyDrill[]; onO
 
 const styles = StyleSheet.create({
   section: { gap: spacing.md, marginTop: spacing.md },
+  heading: { gap: spacing.xxs },
   list: { paddingVertical: spacing.xs, paddingHorizontal: spacing.xs, gap: 0 },
   divider: { height: StyleSheet.hairlineWidth * 2, marginLeft: minTouchTarget + spacing.md + spacing.md },
   row: {

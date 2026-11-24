@@ -1,8 +1,12 @@
 # Mah Jongg Coach: instructions for the build agent
 
-You are the builder in an automated build loop. Each run, you complete **exactly one** backlog task, verify it, record it, and stop. Three independent reviewers (`reviewers/design.md`, `rules.md`, `code.md`) then judge your work. Read their criteria, because they will reject anything below a world-class bar. The loop commits only after all three approve.
+You are the builder in an automated build loop. Each run, you complete **exactly one** backlog task, verify it, record it, and stop. Four independent reviewers (`reviewers/design.md`, `rules.md`, `code.md`, `strategy.md`) then judge your work. Read their criteria, because they will reject anything below a world-class bar. The loop commits only after all four approve.
+
+## North star
+The app exists to make its players **win more often**. Every coaching feature (lesson, drill, scenario, hint, bot) must be defensible as winning play, must take its verdicts from the tested engine rather than from authored text, and, where a claim about strategy is made, must be measured (`docs/STRATEGY.md`). A fourth reviewer (`reviewers/strategy.md`) judges exactly this.
 
 ## Read first
+- `docs/STRATEGY.md`: the winning-strategy doctrine and curriculum map. New coaching content maps to a row there.
 - `docs/PRODUCT.md`: design direction, rules scope, tech stack. Follow it.
 - `docs/BUSINESS.md` §4: the NMJL card constraint. **Never reproduce hands from any National Mah Jongg League card.** Only use our original practice card.
 - `app/AGENTS.md`: Expo-specific rules (use `npx expo install`, versioned docs, no hand-editing `ios/`/`android/`).

@@ -134,6 +134,50 @@ export const ROUTE_META: Readonly<Record<string, RouteMeta>> = {
       'A discard drill: a moment mid-game in American Mah Jongg. Choose the tile to throw, counting dead tiles on the table and what an exposed opponent could call.',
     indexed: false,
   },
+  // One page per scenario (src/app/scenario/[id].tsx), behind the welcome tour
+  // like the drills. siteMeta.test.ts checks this list against the catalog.
+  '/scenario/pass-what-touches-nothing': {
+    title: 'Pass what touches nothing',
+    description:
+      'A Charleston scenario: three pairs of 5s, two Flowers and three loose tiles. Learn why pairs are gold in American Mah Jongg and what to pass first.',
+    indexed: false,
+  },
+  '/scenario/a-flower-is-not-a-stray': {
+    title: 'A Flower is not a stray',
+    description:
+      'A Charleston scenario: a lone Flower among the odds and ends. Learn why a single Flower is worth keeping in American Mah Jongg, and what to pass instead.',
+    indexed: false,
+  },
+  '/scenario/closest-beats-richest': {
+    title: 'Closest beats richest',
+    description:
+      'A hand-choice scenario: a 25-point hand three tiles away against a 50-point hand ten tiles away. Learn to count tiles, not points, in American Mah Jongg.',
+    indexed: false,
+  },
+  '/scenario/jokers-want-big-groups': {
+    title: 'Jokers want big groups',
+    description:
+      'A hand-choice scenario with two Jokers in hand. Learn to pick the American Mah Jongg hand with the most open pung and kong seats, where Jokers can work.',
+    indexed: false,
+  },
+  '/scenario/dragons-have-suits': {
+    title: 'Dragons have suits',
+    description:
+      'A hand-choice scenario: pungs with Green and Red Dragons. Learn how Dragons pair with suits on an American Mah Jongg card, and which line uses yours.',
+    indexed: false,
+  },
+  '/scenario/count-whats-gone': {
+    title: 'Count what’s gone',
+    description:
+      'A discard scenario: three Soaps in the pile and one on your rack. Learn to spot a dead American Mah Jongg hand from the table, and which tile to let go.',
+    indexed: false,
+  },
+  '/scenario/two-exposures-tell-a-story': {
+    title: 'Two exposures tell a story',
+    description:
+      'A defense scenario: the player across has exposed a pung and a kong. Learn to read exposures in American Mah Jongg and avoid throwing the tile they need.',
+    indexed: false,
+  },
   // Behind the welcome tour like the lessons, so out of search until M6.2.
   '/card': {
     title: '2027 Practice Card',

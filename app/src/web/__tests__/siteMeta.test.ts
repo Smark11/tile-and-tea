@@ -1,5 +1,6 @@
 import { DRILLS, drillPath } from '@/game/drills';
 import { LESSONS, lessonPath } from '@/game/lessons';
+import { SCENARIOS, scenarioPath } from '@/game/scenarios';
 
 import {
   buildPageHead,
@@ -175,6 +176,17 @@ describe('drill pages', () => {
     expect(drillRoutes.sort()).toEqual(DRILLS.map((d) => drillPath(d.id)).sort());
     for (const drill of DRILLS) {
       expect(ROUTE_META[drillPath(drill.id)]).toMatchObject({ title: drill.title, indexed: false });
+    }
+  });
+});
+
+describe('scenario pages', () => {
+  const scenarioRoutes = Object.keys(ROUTE_META).filter((route) => route.startsWith('/scenario/'));
+
+  it('lists exactly one unindexed page per scenario, titled with the scenario name', () => {
+    expect(scenarioRoutes.sort()).toEqual(SCENARIOS.map((s) => scenarioPath(s.id)).sort());
+    for (const scenario of SCENARIOS) {
+      expect(ROUTE_META[scenarioPath(scenario.id)]).toMatchObject({ title: scenario.title, indexed: false });
     }
   });
 });

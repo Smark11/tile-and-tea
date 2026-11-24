@@ -155,6 +155,13 @@ export function generateBestHand(seed: number, card: PracticeCard = CURRENT_CARD
   if (!isDecisive(reach)) throw new Error(`No decisive rack for seed ${seed}`);
 
   const hands = shuffle([reach[0], ...otherChoices(reach, rng)], rng).map((r) => r.hand);
+  return bestHandQuestion({ rack, handIds: hands.map((h) => h.id) }, seed, card);
+}
+
+/** The question a rack and four lines ask, as the drill deals it and as a scenario (game/scenarios) sets it. */
+export function bestHandQuestion(data: BestHandData, seed = 0, card: PracticeCard = CURRENT_CARD): DrillQuestion<BestHandData> {
+  const { rack, handIds } = data;
+  const hands = handIds.map((id) => handById(id, card));
   const { groups, caption } = rackGroups(rack);
   return {
     seed,

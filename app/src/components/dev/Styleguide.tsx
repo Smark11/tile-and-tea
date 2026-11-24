@@ -25,6 +25,8 @@ import {
   type TapStep,
 } from '@/game/lessons';
 import { SkillMeters, type SkillMeterItem } from '@/components/progress/SkillMeters';
+import { ScenarioList } from '@/components/scenario/ScenarioList';
+import { ScenarioScene, ScenarioStrategy } from '@/components/scenario/ScenarioViews';
 import { Rack } from '@/components/rack/Rack';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
@@ -48,6 +50,7 @@ import {
 import type { BestHandData } from '@/game/drills/content/bestHand';
 import type { CharlestonData } from '@/game/drills/content/charleston';
 import { createRng } from '@/game/rng';
+import { openScenario, scenarioAnswer, scenarioById } from '@/game/scenarios';
 import {
   ALL_KINDS,
   createShuffledTileSet,
@@ -467,6 +470,35 @@ function DiscardsDemo() {
   );
 }
 
+/**
+ * A scenario's scene, its move after a miss, and its strategy page, plus the
+ * Train tab's list with one scenario finished. Fixed content, so screenshots
+ * don't change between runs.
+ */
+function ScenarioDemo() {
+  const scenario = scenarioById('count-whats-gone')!;
+  const strategy = openScenario(scenario, 'strategy');
+  const answer = scenarioAnswer(strategy)!;
+  const question = currentQuestion(strategy.round);
+  const finished = { 'pass-what-touches-nothing': { plays: 1, verdict: 'best' as const, finishedAt: 0 } };
+  return (
+    <View style={styles.lessonDemo}>
+      <View style={styles.lessonState}>
+        <Text variant="caption">The scene</Text>
+        <ScenarioScene scenario={scenario} question={question} />
+      </View>
+      <View style={styles.lessonState}>
+        <Text variant="caption">The strategy, after the taught move</Text>
+        <ScenarioStrategy scenario={scenario} answer={answer} />
+      </View>
+      <View style={styles.lessonState}>
+        <Text variant="caption">The Train tab’s list, one scenario finished</Text>
+        <ScenarioList completed={finished} onOpen={() => {}} />
+      </View>
+    </View>
+  );
+}
+
 // One of each meter state: settled and rising, rising, settling in and slipping, and not rated yet.
 const SAMPLE_RATINGS: readonly (SkillRating | undefined)[] = [
   { rating: 1338, answers: 64, roundStart: 1316 },
@@ -533,6 +565,10 @@ export function Styleguide() {
 
       <Section title="Discards drill">
         <DiscardsDemo />
+      </Section>
+
+      <Section title="Scenario pages">
+        <ScenarioDemo />
       </Section>
 
       <Section title="Skill meters">
