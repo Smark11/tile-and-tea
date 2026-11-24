@@ -1,5 +1,8 @@
 import { CURRENT_CARD, handDistance } from '../../card';
+import { analyzeCall, analyzeSwap } from '../../drills/content/tableMoves';
+import { analyzeRack, verdictOf as passVerdict } from '../../drills/content/charleston';
 import { analyzeTable, verdictOf as throwVerdict } from '../../drills/content/discards';
+import { handById } from '../../drills/content/words';
 import { isRackSorted } from '../../rack';
 import { copiesOf, sameKind, tileKey, type TileKind } from '../../tiles';
 import {
@@ -11,6 +14,7 @@ import {
   scenarioById,
   scenarioDrill,
   scenarioQuestion,
+  scenarioRack,
   SCENARIOS,
   scenariosIn,
   STAGES,
@@ -23,8 +27,9 @@ const asTiles = (kinds: readonly TileKind[]) => kinds.map((kind, id) => ({ id, k
 /** Every tile the scenario puts in view. */
 function tilesInView(s: Scenario): TileKind[] {
   const { setup } = s;
-  if (setup.kind !== 'discard') return [...setup.rack];
-  return [...setup.data.rack, ...setup.data.discards, ...setup.data.exposures.flatMap((e) => e.groups.flat())];
+  if (setup.kind === 'charleston' || setup.kind === 'best-hand') return [...setup.rack];
+  const offered = setup.kind === 'call' ? [setup.data.offered] : [];
+  return [...setup.data.rack, ...offered, ...setup.data.discards, ...setup.data.exposures.flatMap((e) => e.groups.flat())];
 }
 
 /** Every combination of `k` distinct choice indexes among the free tile choices. */
@@ -56,8 +61,8 @@ describe('the scenario catalog', () => {
   });
 
   it.each(SCENARIOS.map((s) => [s.id, s] as const))('%s is a possible table with readable text', (_id, s) => {
-    const rack = s.setup.kind === 'discard' ? s.setup.data.rack : s.setup.rack;
-    expect(rack).toHaveLength(s.setup.kind === 'discard' ? 14 : 13);
+    const rack = scenarioRack(s);
+    expect(rack).toHaveLength(s.setup.kind === 'discard' || s.setup.kind === 'swap' ? 14 : 13);
     expect(isRackSorted(asTiles(rack))).toBe(true);
     const all = tilesInView(s);
     for (const kind of all) expect(all.filter((k) => sameKind(k, kind)).length).toBeLessThanOrEqual(copiesOf(kind));
@@ -99,6 +104,9 @@ describe('the scenario catalog', () => {
     expect(moveWords(scenarioById('pass-what-touches-nothing')!)).toBe('Pass the 9 Bam, the 1 Crak and the 9 Dot');
     expect(moveWords(scenarioById('count-whats-gone')!)).toBe('Throw the Soap');
     expect(moveWords(scenarioById('dragons-have-suits')!)).toBe('Aim for 2468 #3');
+    expect(moveWords(scenarioById('stay-concealed')!)).toBe('Let it go');
+    expect(moveWords(scenarioById('call-the-kong')!)).toBe('Call it for a kong');
+    expect(moveWords(scenarioById('swap-the-spare')!)).toBe('Swap your 5 Crak for the Joker');
   });
 
   it('wraps each scenario as a stable one-question drill', () => {
@@ -160,6 +168,88 @@ describe('what the stories claim', () => {
     expect(away('jokers-want-big-groups', 'like-2')).toBe(2);
     expect(away('jokers-want-big-groups', 'like-1')).toBe(4);
     expect(away('jokers-want-big-groups', 'like-4')).toBe(5);
+  });
+
+  it('Fifty points, one tile further: Winds & Dragons #1 is four away, the 50-point pairs hand five', () => {
+    expect(away('big-hands-need-real-tiles', 'honors-1')).toBe(4);
+    expect(away('big-hands-need-real-tiles', 'pairs-1')).toBe(5);
+    expect(handById('pairs-1').value).toBe(50);
+    expect(handById('honors-1').value).toBe(25);
+  });
+
+  it('Keep doors open: every pass that keeps 13579 #4 at six is equal on distance; only the evens keep two backups', () => {
+    const s = scenarioById('keep-doors-open')!;
+    if (s.setup.kind !== 'charleston') throw new Error('expected a Charleston scenario');
+    const a = analyzeRack(s.setup.rack);
+    expect(a.hands[0].hand.id).toBe('odds-4');
+    expect(a.bestClosest).toBe(6);
+    expect(a.bestBackups).toBe(2);
+    const spare5 = a.outcomes.find((o) => o.pass.some((k) => tileKey(k) === 'crak-5') && o.closest === 6)!;
+    expect(passVerdict(spare5, a)).toBe('good');
+    expect(a.hands.map((h) => h.hand.id)).toEqual(['odds-4', 'odds-1', 'pairs-2']);
+  });
+
+  it('Exposures count as gone too: 3-4-5 Bams is dead, 2-3-4 Bams is the live line four away', () => {
+    const s = scenarioById('exposures-count-too')!;
+    if (s.setup.kind !== 'discard') throw new Error('expected a discard scenario');
+    const a = analyzeTable(s.setup.data);
+    expect(a.dead?.hand.hand.id).toBe('runs-3');
+    expect(a.bestClosest).toBe(4);
+    const five = a.outcomes.find((o) => tileKey(o.tile) === 'bam-5')!;
+    expect(five.danger).toBeNull();
+    expect(five.hand?.id).toBe('runs-3');
+    // No 5 Bam in the pile, three real ones in the left player's pung, one on the rack.
+    expect(s.setup.data.discards.filter((k) => tileKey(k) === 'bam-5')).toHaveLength(0);
+    expect(s.setup.data.exposures[0].groups[0].filter((k) => tileKey(k) === 'bam-5')).toHaveLength(3);
+    expect(s.setup.data.rack.filter((k) => tileKey(k) === 'bam-5')).toHaveLength(1);
+  });
+
+  it('Exposures count as gone too: no exposed Joker can be swapped, so throwing the 5 Bam really is best', () => {
+    const s = scenarioById('exposures-count-too')!;
+    if (s.setup.kind !== 'discard') throw new Error('expected a discard scenario');
+    expect(s.setup.data.exposures.flatMap((e) => e.groups.flat()).some((k) => k.type === 'joker')).toBe(false);
+    const swaps = analyzeSwap(s.setup.data);
+    expect(swaps.outcomes.map((o) => [o.id, o.closest])).toEqual([['keep', 4]]);
+  });
+
+  it('Not every tile is worth calling: letting it go keeps the concealed pairs hand two away; the pung leaves seven', () => {
+    const s = scenarioById('stay-concealed')!;
+    if (s.setup.kind !== 'call') throw new Error('expected a call scenario');
+    const a = analyzeCall(s.setup.data);
+    expect(a.outcomes.map((o) => [o.id, o.closest, o.plan?.hand.id])).toEqual([
+      ['pass', 2, 'pairs-1'],
+      ['pung', 7, 'like-2'],
+    ]);
+    expect(handById('pairs-1').concealed).toBe(true);
+  });
+
+  it('Call for the group your hand needs: the kong brings 13579 #3 to one, the pung leaves eight', () => {
+    const s = scenarioById('call-the-kong')!;
+    if (s.setup.kind !== 'call') throw new Error('expected a call scenario');
+    const a = analyzeCall(s.setup.data);
+    expect(a.outcomes.map((o) => [o.id, o.closest])).toEqual([
+      ['pass', 2],
+      ['pung', 8],
+      ['kong', 1],
+    ]);
+    expect(a.best.plan?.hand.id).toBe('odds-3');
+  });
+
+  it('Take the Joker / Swap the spare: the free swap brings the hand from two to one; the Flower swap leaves it at two', () => {
+    const take = scenarioById('take-the-joker')!;
+    const spare = scenarioById('swap-the-spare')!;
+    if (take.setup.kind !== 'swap' || spare.setup.kind !== 'swap') throw new Error('expected swap scenarios');
+    const a = analyzeSwap(take.setup.data);
+    expect(a.outcomes.map((o) => [o.id, o.closest, o.plan?.hand.id])).toEqual([
+      ['swap-across-0', 1, 'addition-4'],
+      ['keep', 2, 'addition-4'],
+    ]);
+    const b = analyzeSwap(spare.setup.data);
+    expect(b.outcomes.map((o) => [o.id, o.closest, o.plan?.hand.id])).toEqual([
+      ['swap-left-0', 2, 'evens-1'],
+      ['swap-right-0', 1, 'evens-1'],
+      ['keep', 2, 'evens-1'],
+    ]);
   });
 
   it('Closest beats richest: the pairs hand is far further than the answer', () => {

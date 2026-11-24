@@ -6,7 +6,7 @@ import { ScenarioPlayer } from '@/components/scenario/ScenarioPlayer';
 import { parseStep, ScenarioScreen } from '@/components/scenario/ScenarioScreen';
 import { TrainTab } from '@/components/tabs/TrainTab';
 import { NO_USAGE } from '@/game/drills';
-import { moveIndexes, scenarioById, SCENARIOS } from '@/game/scenarios';
+import { moveIndexes, scenarioById, scenarioOfTheDay, SCENARIOS } from '@/game/scenarios';
 import { useDrillProgress } from '@/state/drillProgress';
 import { nextUnfinished, useScenarioProgress } from '@/state/scenarioProgress';
 
@@ -144,7 +144,7 @@ describe('ScenarioList and the Train tab', () => {
     useScenarioProgress.getState().complete(charleston.id, 'best');
     const { completed } = useScenarioProgress.getState();
     await render(<ScenarioList completed={completed} onOpen={onOpen} />);
-    expect(screen.getByLabelText(/^The Charleston\. .* 1 of 2 finished\./)).toBeTruthy();
+    expect(screen.getByLabelText(/^The Charleston\. .* 1 of 3 finished\./)).toBeTruthy();
     expect(screen.getAllByTestId('scenario-done')).toHaveLength(1);
     await fireEvent.press(screen.getByRole('button', { name: /^Pass what touches nothing\. .*\. Finished$/ }));
     expect(onOpen).toHaveBeenCalledWith(charleston);
@@ -164,5 +164,35 @@ describe('ScenarioList and the Train tab', () => {
     await render(<TrainTab />);
     expect(screen.getByRole('button', { name: `Replay: ${SCENARIOS[0].title}` })).toBeTruthy();
     expect(screen.getAllByTestId('scenario-done')).toHaveLength(SCENARIOS.length);
+  });
+});
+
+describe('table-move scenarios and the scenario of the day', () => {
+  it('plays a call as move slips: the offered tile glows on the felt, and the taught move is the coach’s', async () => {
+    const call = scenarioById('call-the-kong')!;
+    await render(<ScenarioPlayer scenario={call} step="move" />);
+    // Drawn on the felt; screen readers hear it in the table's caption.
+    expect(screen.getByTestId('drill-offered', { includeHiddenElements: true })).toBeTruthy();
+    expect(screen.getByLabelText(/The player across has just thrown a 9 Crak\.$/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Let it go. Stay concealed and draw from the wall.' })).toBeTruthy();
+    // The pung loses the 9999 the hand prints.
+    await fireEvent.press(screen.getByRole('button', { name: /^Call it for a pung\./ }));
+    expect(screen.getByText('A stronger move is here')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Call it for a kong, the answer\./ })).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('scenario-continue'));
+    expect(screen.getByText(call.strategy.principle)).toBeTruthy();
+    expect(screen.getByLabelText('Call it for a kong')).toBeTruthy();
+  });
+
+  it('shows today’s scenario on the Train tab and opens it', async () => {
+    const today = scenarioOfTheDay(new Date());
+    await render(<TrainTab />);
+    expect(screen.getByTestId('scenario-of-the-day')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('scenario-of-the-day-play'));
+    expect(router().push).toHaveBeenCalledWith(`/scenario/${today.id}`);
+    await screen.unmount();
+    useScenarioProgress.getState().complete(today.id, 'best');
+    await render(<TrainTab />);
+    expect(screen.getByRole('button', { name: 'Play it again' })).toBeTruthy();
   });
 });

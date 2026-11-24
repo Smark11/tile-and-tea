@@ -9,7 +9,7 @@ import { Text } from '@/components/Text';
 import { rackGroups } from '@/game/drills/content/bestHand';
 import { handById } from '@/game/drills/content/words';
 import type { AnsweredQuestion, DrillQuestion } from '@/game/drills';
-import { moveTiles, moveWords, stageInfo, type Scenario } from '@/game/scenarios';
+import { moveTiles, moveWords, scenarioRack, stageInfo, type Scenario } from '@/game/scenarios';
 import { radii, spacing, useTheme } from '@/theme';
 
 // The pages of a scenario around its move: the scene that sets it up, and the
@@ -28,7 +28,7 @@ function Paragraphs({ body }: { body: string }) {
 
 /** The rack the scenario hands the player, in suit groups with a spoken caption. */
 function rackDisplay(scenario: Scenario) {
-  const rack = scenario.setup.kind === 'discard' ? scenario.setup.data.rack : scenario.setup.rack;
+  const rack = scenarioRack(scenario);
   const { groups, caption } = rackGroups(rack);
   return { tiles: rack, groups, caption };
 }

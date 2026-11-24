@@ -16,6 +16,7 @@ const passWhatTouchesNothing: Scenario = {
   title: 'Pass what touches nothing',
   summary: 'Your first pass: three tiles the rack won’t miss.',
   stage: 'charleston',
+  principle: 'C1',
   skill: 'charleston',
   icon: crak(1),
   story:
@@ -44,6 +45,7 @@ const aFlowerIsNotAStray: Scenario = {
   title: 'A Flower is not a stray',
   summary: 'One Flower looks lonely. Sixteen hands disagree.',
   stage: 'charleston',
+  principle: 'C2',
   skill: 'charleston',
   icon: FLOWER,
   story:
@@ -72,6 +74,7 @@ const closestBeatsRichest: Scenario = {
   title: 'Closest beats richest',
   summary: 'A 25-point hand you finish beats a 50-point hand you don’t.',
   stage: 'hand-choice',
+  principle: 'H1',
   skill: 'hand-choice',
   icon: bam(5),
   story:
@@ -101,6 +104,7 @@ const jokersWantBigGroups: Scenario = {
   title: 'Jokers want big groups',
   summary: 'Two Jokers in hand. Which hand lets them work?',
   stage: 'hand-choice',
+  principle: 'H2',
   skill: 'hand-choice',
   icon: JOKER,
   story:
@@ -130,6 +134,7 @@ const dragonsHaveSuits: Scenario = {
   title: 'Dragons have suits',
   summary: 'Green goes with Bams, Red with Craks, Soap with Dots. The card counts on it.',
   stage: 'hand-choice',
+  principle: 'H3',
   skill: 'hand-choice',
   icon: GREEN,
   story:
@@ -159,6 +164,7 @@ const countWhatsGone: Scenario = {
   title: 'Count what’s gone',
   summary: 'The tile you’ve been protecting may already be dead.',
   stage: 'table',
+  principle: 'T1',
   skill: 'discards',
   icon: SOAP,
   story:
@@ -191,6 +197,7 @@ const twoExposuresTellAStory: Scenario = {
   title: 'Two exposures tell a story',
   summary: 'Across has a pung of 3 Bams and a kong of 3 Craks. Don’t finish it for them.',
   stage: 'table',
+  principle: 'T2',
   skill: 'discards',
   icon: dot(3),
   story:
@@ -218,12 +225,250 @@ const twoExposuresTellAStory: Scenario = {
   },
 };
 
+const keepDoorsOpen: Scenario = {
+  id: 'keep-doors-open',
+  title: 'Keep doors open',
+  summary: 'Three passes keep your closest hand. Only one keeps your backups too.',
+  stage: 'charleston',
+  principle: 'C3',
+  skill: 'charleston',
+  icon: crak(5),
+  story:
+    'An odd-numbered deal: a run of Craks from 1 to 9 with the 5 and the 7 doubled, a pair of 3 Dots, and a 7 Bam. Three even tiles sit among them: a 4 Bam, an 8 Bam and an 8 Dot.\n\n13579 #4 wants just one 5 Crak and one 7 Crak, so the second copies look spare. Do you pass them, or the evens?',
+  prompt: 'First Charleston. Which three do you pass right?',
+  setup: {
+    kind: 'charleston',
+    rack: [bam(4), bam(7), bam(8), crak(1), crak(3), crak(5), crak(5), crak(7), crak(7), crak(9), dot(3), dot(3), dot(8)],
+  },
+  move: { tiles: [bam(4), bam(8), dot(8)] },
+  strategy: {
+    principle: 'On the early passes, keep the tiles that hold your backup hands.',
+    body:
+      'Pass the evens and 13579 #4 stays six tiles away, the same as if you passed a spare 5 or 7 Crak. The difference is what else stays alive. Those doubled Craks start the 555 and 777 of 13579 #1 (11 333 555 777 999 in one suit) and two pairs of Singles & Pairs #2 (11 33 55 77 99 with a pair of Dragons in each other suit), and the evens touch neither. Keep the pairs, and two more hands sit one tile behind your closest. Pass one, and you’re down to a single plan.\n\nThe Charleston and the first draws change racks fast. A player with three live hands can follow whichever one the wall feeds. A player with one is stuck when it stalls. In our simulator, keeping backup hands won about five more games in a hundred at a Club table, though we couldn’t measure a difference in points, nor at Beginner or Shark tables. So treat it as the tie-break it is: never give up a tile of your closest hand for a backup, but when two passes keep your closest hand equally close, take the one that keeps more doors open.',
+    checklist: [
+      'Find the passes that keep your closest hand where it is.',
+      'Among those, count the other hands each one keeps within a tile.',
+      'Pass the tiles no hand wants before you split a pair some backup needs.',
+      'By the last pass, usually commit: backups matter most early.',
+    ],
+  },
+};
+
+const bigHandsNeedRealTiles: Scenario = {
+  id: 'big-hands-need-real-tiles',
+  title: 'Fifty points, one tile further',
+  summary: 'The pairs hand pays double and is only a tile behind. Count again.',
+  stage: 'hand-choice',
+  principle: 'H1',
+  skill: 'hand-choice',
+  icon: NORTH,
+  story:
+    'You came out of the Charleston with a wall of Winds: three Norths, two Easts, a West and two Souths. Two Jokers came with them, plus a 1 Crak and a pair of 5 Craks.\n\nWinds & Dragons #1 pays 25. Singles & Pairs #1 (NN EE WW SS and three pairs in a run) pays 50, and it’s only one tile further. Which hand do you go for?',
+  prompt: 'Which hand do you go for?',
+  setup: {
+    kind: 'best-hand',
+    rack: [crak(1), crak(5), crak(5), NORTH, NORTH, NORTH, EAST, EAST, WEST, SOUTH, SOUTH, JOKER, JOKER],
+    handIds: ['pairs-1', 'honors-1', 'year-3', 'like-2'],
+  },
+  move: { handId: 'honors-1' },
+  strategy: {
+    principle: 'Count tiles, not points. A richer hand one tile further is still further.',
+    body:
+      'Winds & Dragons #1 (NNN EEEE WWWW SSS) is four tiles away, and your two Jokers are already working in it, filling two seats in its kongs. Singles & Pairs #1 is five away, and it needs every one of those five to be an exact tile, since a Joker never fills a pair. Your Jokers would sit there doing nothing.\n\nIt’s tempting to think 50 points is worth a tile. It isn’t. We tested exactly that in our simulator: a player who counts every 10 points over 25 as a tile nearer finishes 11 to 25 fewer hands in a hundred, at every table, and loses 18 to 35 points a game. The big hands it does finish don’t come close to paying for the ones it doesn’t.\n\nGo for the closest hand. If the pairs hand gets closer later, the wall will show you.',
+    checklist: [
+      'Count each hand’s missing tiles, with your Jokers filling pung and kong seats only.',
+      'Take the lowest count, whatever the hand pays.',
+      'Treat a concealed or Singles & Pairs hand as further than it looks when you hold Jokers.',
+      'Switch only when the other hand is now closer, not just richer.',
+    ],
+  },
+};
+
+const exposuresCountToo: Scenario = {
+  id: 'exposures-count-too',
+  title: 'Exposures count as gone too',
+  summary: 'No 5 Bam in the pile looks like plenty left. Look at the exposures.',
+  stage: 'table',
+  principle: 'T1',
+  skill: 'discards',
+  icon: bam(5),
+  story:
+    'You’re building Consecutive Run #3 (pairs of 3, 4 and 5 in one suit, four Norths, four Souths): pairs of 3 and 4 Bams, a 5 Bam waiting for its partner, all four Norths and two Souths. You’ve just drawn.\n\nThe pile shows no 5 Bam at all, so it feels like there’s plenty of time. But the player on your left has exposed a pung of 5 Bams, all three of them real.',
+  prompt: 'Which tile do you throw?',
+  setup: {
+    kind: 'discard',
+    data: {
+      rack: [bam(3), bam(3), bam(4), bam(4), bam(5), crak(7), crak(8), dot(4), NORTH, NORTH, NORTH, NORTH, SOUTH, SOUTH],
+      discards: [WEST, crak(1), dot(9), GREEN, bam(7), crak(3), dot(1), EAST, FLOWER],
+      exposures: [{ seat: 'left', groups: [[bam(5), bam(5), bam(5)], [dot(5), dot(5), dot(5), dot(5)]] }],
+    },
+  },
+  move: { tiles: [bam(5)] },
+  strategy: {
+    principle: 'Count the exposures as well as the pile. Both are tiles you’ll never draw.',
+    body:
+      'Your 5 Bam needs a partner, and a Joker can’t be one. There are four 5 Bams: yours, and three in the left player’s pung. None is left to draw, so 3-4-5 in Bams can never be finished, however close it looked.\n\nThe hand isn’t lost, only that version of it. 2-3-4 in Bams uses your 3s and 4s just as well, with all four 2 Bams still unseen. It’s four tiles away, the closest live hand you have, and the 5 Bam plays no part in it. Throw it. It’s a low-risk throw, too: every real 5 Bam is accounted for, so only a player using Jokers, or one waiting on a single 5 Bam, could use it.\n\nPlayers count the pile because it’s in the middle of the table. Exposures are just as gone: judge by the pile here and you’d think three 5 Bams were still out, when in truth none are. In our simulator, counting dead tiles was worth about 6 points a game against Beginners and 4 against Club players. Against Sharks, who count them too, the difference was too small to measure.',
+    checklist: [
+      'For each single or pair you still need, count the copies in the pile and in every exposure.',
+      'Count your own rack too: the copies you hold are gone for everyone else.',
+      'When the last copy is gone, look for the same hand in other numbers or suits before you give it up.',
+      'Throw the dead tile first: it’s no use to you, and often no use to anyone.',
+    ],
+  },
+};
+
+const stayConcealed: Scenario = {
+  id: 'stay-concealed',
+  title: 'Not every tile is worth calling',
+  summary: 'You can call the 5 Dot. It would cost you your hand.',
+  stage: 'table',
+  principle: 'T4',
+  skill: 'discards',
+  icon: dot(5),
+  story:
+    'Your rack is all pairs: two Norths, two Easts, two Souths, a West, and 5-5 6-6 7 in Dots. That’s Singles & Pairs #1, a concealed hand, two tiles away.\n\nThe player on your left throws a 5 Dot. You hold two, so the table pauses for you. You could call it for a pung.',
+  prompt: 'Do you call the 5 Dot?',
+  setup: {
+    kind: 'call',
+    data: {
+      rack: [bam(2), dot(5), dot(5), dot(6), dot(6), dot(7), NORTH, NORTH, EAST, EAST, WEST, SOUTH, SOUTH],
+      offered: dot(5),
+      from: 'left',
+      discards: [crak(1), bam(9), GREEN, RED, crak(3)],
+      exposures: [],
+    },
+  },
+  move: { action: 'pass' },
+  strategy: {
+    principle: 'Call a tile only when the exposure brings your hand closer.',
+    body:
+      'Calling the 5 Dot gives you a pung, but your hand doesn’t want a pung. Singles & Pairs #1 needs the pair of 5s you already have, and it’s concealed: the moment you expose anything, it’s gone. The closest hand that would fit a 5 Dot pung is Like Numbers #2, seven tiles away. Let it go, and you’re still two from 50 points.\n\nA call is never free. It shows the table your hand, it ends every concealed line, and it locks those tiles in. In our simulator, a player who calls any exposure that fits, even when it brings the hand no closer, wins two to four fewer games in a hundred at every table.\n\nBefore you call, ask one question: after this call and a discard, am I closer than I am now? If not, let it go.',
+    checklist: [
+      'When a tile you could call hits the table, compare your closest hand before and after the call.',
+      'A concealed hand ends with any exposure. Count that in.',
+      'An exposed pung can’t become a kong later: call for the group your hand prints.',
+      'If the call doesn’t bring you closer, let the tile go.',
+    ],
+  },
+};
+
+const callTheKong: Scenario = {
+  id: 'call-the-kong',
+  title: 'Call for the group your hand needs',
+  summary: 'A 9 Crak is up. A pung would cost you; a kong wins the tile.',
+  stage: 'table',
+  principle: 'T4',
+  skill: 'discards',
+  icon: crak(9),
+  story:
+    'You’re two tiles from 13579 #3 (333 5555 in one suit, 777 9999 in another): a pung of 3 Bams, four 5 Bams, a pair of 7 Craks, a pair of 9 Craks and a Joker, plus a North your hand has no use for.\n\nThe player across throws a 9 Crak. You could call it for a pung with your two 9s, or for a kong with your Joker as well.',
+  prompt: 'Do you call the 9 Crak?',
+  setup: {
+    kind: 'call',
+    data: {
+      rack: [bam(3), bam(3), bam(3), bam(5), bam(5), bam(5), bam(5), crak(7), crak(7), crak(9), crak(9), NORTH, JOKER],
+      offered: crak(9),
+      from: 'across',
+      discards: [EAST, WEST, dot(8), crak(4), bam(1), GREEN, dot(2)],
+      exposures: [],
+    },
+  },
+  move: { action: 'kong' },
+  strategy: {
+    principle: 'When a call brings you closer, take it, and expose exactly the group the hand prints.',
+    body:
+      'Your hand prints 9999. Call the 9 Crak for a kong, with your two 9s and the Joker, and that group is done: 13579 #3 drops from two tiles away to one. Waiting on the wall for a tile someone just handed you throws away a turn you may not get back.\n\nThe pung is the trap. Expose 999 and it stays a pung: you can’t add to an exposure later, so the 9999 your hand needs is gone, and the closest hand left is eight tiles away.\n\nThis is the other half of “call only when it brings you closer.” In our simulator, the player who calls well (only when it helps) wins two to four more games in a hundred than one who calls whatever fits.',
+    checklist: [
+      'Find where the tile fits in your closest hand: pung, kong or quint.',
+      'Call for that exact size, using real tiles first and Jokers to make up the rest.',
+      'Never expose a pung where your hand prints a kong. It can’t grow later.',
+      'Count again after the call: you should be a tile closer.',
+    ],
+  },
+};
+
+const takeTheJoker: Scenario = {
+  id: 'take-the-joker',
+  title: 'Take the Joker',
+  summary: 'There’s a Joker in an exposure, and you hold the tile it stands for.',
+  stage: 'table',
+  principle: 'T5',
+  skill: 'discards',
+  icon: JOKER,
+  story:
+    'You’re two tiles from Addition #4 (999 in Bams and Craks, then 1111 and 8888 in Dots): pungs of 9 Bams, 9 Craks, 1 Dots and 8 Dots. You’ve just drawn, and you also hold a 4 Crak and a West that your hand has no use for.\n\nThe player across has exposed a pung of 4 Craks: two real 4s and a Joker.',
+  prompt: 'Your turn. Do you swap for the Joker?',
+  setup: {
+    kind: 'swap',
+    data: {
+      rack: [bam(9), bam(9), bam(9), crak(4), crak(9), crak(9), crak(9), dot(1), dot(1), dot(1), dot(8), dot(8), dot(8), WEST],
+      discards: [NORTH, crak(1), dot(9), GREEN, bam(7), SOUTH, crak(3), dot(2), EAST],
+      exposures: [{ seat: 'across', groups: [[crak(4), crak(4), JOKER], [crak(6), crak(6), crak(6), crak(6)]] }],
+    },
+  },
+  move: { action: 'swap-across-0' },
+  strategy: {
+    principle: 'Swap for an exposed Joker whenever you hold the real tile and it costs your hand nothing.',
+    body:
+      'On your turn, before you discard, you may give the real tile for any Joker in any exposure. Your 4 Crak was headed for the discard pile anyway. Swap it, and the Joker fills a seat in your 1 Dot or 8 Dot kong: Addition #4 goes from two tiles away to one. Then throw the West.\n\nJokers are the most valuable tiles in the set, and an exposed one is a Joker anyone can claim. In our simulator, swapping whenever it costs nothing won 2 to 12 more games in a hundred, most of all against Beginners, who leave Jokers in their exposures.',
+    checklist: [
+      'At the start of every turn, scan every exposure, yours included, for Jokers.',
+      'If you hold the real tile and your hand doesn’t need it, swap before you discard.',
+      'Put the new Joker in a pung, kong or quint seat. It never fills a single or pair.',
+      'Do it now: once someone else holds that tile, the Joker is theirs to take.',
+    ],
+  },
+};
+
+const swapTheSpare: Scenario = {
+  id: 'swap-the-spare',
+  title: 'Swap the spare, not the pair',
+  summary: 'Two Jokers on offer. One swap helps; the other only looks like it.',
+  stage: 'table',
+  principle: 'T5',
+  skill: 'discards',
+  icon: FLOWER,
+  story:
+    'You’re two tiles from 2468 #1 (FF, 222 444 in one suit, 666 888 in another): a pair of Flowers, a pung of 2 Bams, two 4 Bams, a pung of 6 Dots and two 8 Dots. You’ve just drawn, and you also hold a 5 Crak and a North.\n\nThere are two Jokers in reach. The player on your left exposed Flowers with a Joker, and the player on your right exposed 5 Craks with a Joker.',
+  prompt: 'Your turn. Which Joker, if any, do you take?',
+  setup: {
+    kind: 'swap',
+    data: {
+      rack: [bam(2), bam(2), bam(2), bam(4), bam(4), crak(5), dot(6), dot(6), dot(6), dot(8), dot(8), NORTH, FLOWER, FLOWER],
+      discards: [WEST, crak(1), dot(9), GREEN, bam(7), SOUTH, crak(3), dot(1), EAST, bam(1)],
+      exposures: [
+        { seat: 'left', groups: [[FLOWER, FLOWER, FLOWER, JOKER], [SOAP, SOAP, SOAP]] },
+        { seat: 'right', groups: [[crak(5), crak(5), JOKER], [bam(9), bam(9), bam(9), bam(9)]] },
+      ],
+    },
+  },
+  move: { action: 'swap-right-0' },
+  strategy: {
+    principle: 'A swap is only free when the tile you give was spare. Never trade away part of a pair.',
+    body:
+      'Both swaps hand you a Joker that fills your 444 or your 888. But what you give for it matters. The 5 Crak is a spare, so swapping it takes you from two tiles away to one.\n\nThe Flower is half of your FF pair, and a Joker can never fill a pair. Give it up, and the pair needs a real Flower again, so the Joker’s gain is cancelled: you’re still two away, and the trade gains you no ground.\n\nSwapping for exposed Jokers is one of the strongest habits we’ve measured (2 to 12 more wins in a hundred), but only when it costs your hand nothing. Check what the tile was doing before you hand it over.',
+    checklist: [
+      'List every Joker you could take: you need the exact tile it stands for.',
+      'Check what each tile you’d give is doing in your closest hand.',
+      'Give a spare, never a tile in a single or pair: a Joker can’t replace it.',
+      'With two good swaps, you may take both, one at a time, before you discard.',
+    ],
+  },
+};
+
 export const SCENARIOS: readonly Scenario[] = [
   passWhatTouchesNothing,
   aFlowerIsNotAStray,
+  keepDoorsOpen,
   closestBeatsRichest,
   jokersWantBigGroups,
   dragonsHaveSuits,
+  bigHandsNeedRealTiles,
   countWhatsGone,
+  exposuresCountToo,
   twoExposuresTellAStory,
+  stayConcealed,
+  callTheKong,
+  takeTheJoker,
+  swapTheSpare,
 ];

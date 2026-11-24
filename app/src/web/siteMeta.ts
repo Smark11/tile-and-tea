@@ -178,6 +178,48 @@ export const ROUTE_META: Readonly<Record<string, RouteMeta>> = {
       'A defense scenario: the player across has exposed a pung and a kong. Learn to read exposures in American Mah Jongg and avoid throwing the tile they need.',
     indexed: false,
   },
+  '/scenario/keep-doors-open': {
+    title: 'Keep doors open',
+    description:
+      'A Charleston scenario: three passes keep your closest hand, but only one keeps your backup hands alive. Learn which tiles to keep on the first pass.',
+    indexed: false,
+  },
+  '/scenario/big-hands-need-real-tiles': {
+    title: 'Fifty points, one tile further',
+    description:
+      'A hand-choice scenario: a 50-point pairs hand only a tile behind a 25-point Winds hand, with two Jokers. Learn why the closer hand wins more games.',
+    indexed: false,
+  },
+  '/scenario/exposures-count-too': {
+    title: 'Exposures count as gone too',
+    description:
+      'A discard scenario: no 5 Bam in the pile, but three in an exposure. Learn to count exposed tiles as gone in American Mah Jongg, and which tile to let go.',
+    indexed: false,
+  },
+  '/scenario/stay-concealed': {
+    title: 'Not every tile is worth calling',
+    description:
+      'A calling scenario: you could call the 5 Dot for a pung, but you are two from a concealed hand. Learn when to call a discard in American Mah Jongg.',
+    indexed: false,
+  },
+  '/scenario/call-the-kong': {
+    title: 'Call for the group your hand needs',
+    description:
+      'A calling scenario: a 9 Crak you could call for a pung or a kong. Learn why the size of an exposure matters in American Mah Jongg, and which call wins.',
+    indexed: false,
+  },
+  '/scenario/take-the-joker': {
+    title: 'Take the Joker',
+    description:
+      'A Joker-swap scenario: an exposed pung holds a Joker, and you hold the real tile. Learn when to swap for an exposed Joker in American Mah Jongg.',
+    indexed: false,
+  },
+  '/scenario/swap-the-spare': {
+    title: 'Swap the spare, not the pair',
+    description:
+      'A Joker-swap scenario with two Jokers on offer. Learn which tile to give for an exposed Joker in American Mah Jongg, and why a pair is never spare.',
+    indexed: false,
+  },
   // Behind the welcome tour like the lessons, so out of search until M6.2.
   '/card': {
     title: '2027 Practice Card',

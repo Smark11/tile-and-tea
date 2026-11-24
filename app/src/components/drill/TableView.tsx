@@ -65,6 +65,16 @@ export function TableView({ table }: { table: DrillTable }) {
           ))}
         </View>
       </View>
+      {table.offered && (
+        <View style={styles.offered} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden testID="drill-offered">
+          <View style={[styles.offeredGlow, { boxShadow: `0 0 18px 4px ${colors.gold}` }]}>
+            <Tile kind={table.offered.tile} width={Math.round(width * 1.35)} />
+          </View>
+          <Text variant="headline" color="onFelt">
+            {SEAT_LABELS[table.offered.from]} just threw this
+          </Text>
+        </View>
+      )}
       <View style={[styles.rule, { backgroundColor: colors.onFeltMuted }]} />
       <Text
         variant="callout"
@@ -73,7 +83,7 @@ export function TableView({ table }: { table: DrillTable }) {
         importantForAccessibility="no-hide-descendants"
         accessibilityElementsHidden
       >
-        Your rack · 14 tiles after the draw
+        {table.rackNote ?? 'Your rack · 14 tiles after the draw'}
       </Text>
     </View>
   );
@@ -85,5 +95,7 @@ const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, rowGap: spacing.sm },
   pile: { gap: GAP, rowGap: GAP + 2 },
   cluster: { flexDirection: 'row', gap: 2 },
+  offered: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.md, paddingVertical: spacing.xs },
+  offeredGlow: { borderRadius: 8 },
   rule: { height: StyleSheet.hairlineWidth * 2, opacity: 0.35, marginTop: spacing.xs },
 });

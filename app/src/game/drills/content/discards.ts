@@ -387,7 +387,7 @@ function isFairQuestion(a: DiscardAnalysis): boolean {
 }
 
 /** "Right: pung of 5 Bams, kong of 5 Dots. On the table: two Norths, a 3 Bam…" */
-function tableCaption(data: DiscardData): string {
+export function tableCaption(data: Pick<DiscardData, 'discards' | 'exposures'>): string {
   const exposed = data.exposures.map(
     (e) => `${capitalize(SEAT_WORDS[e.seat])} has exposed ${exposureWords(e.groups)}.`,
   );

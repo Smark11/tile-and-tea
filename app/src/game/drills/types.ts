@@ -27,6 +27,18 @@ export type DrillChoice =
       readonly line: CardLine;
       /** Where the line sits on the card, e.g. "Like Numbers #2". Read before the line itself. */
       readonly label: string;
+    }
+  | {
+      /** A move at the table that isn't a tile: call the discard, let it go, swap for a Joker. */
+      readonly kind: 'action';
+      /** Stable within the question, e.g. 'pass', 'pung', 'swap-across-0'. */
+      readonly id: string;
+      /** What the move is, e.g. "Call it for a pung". */
+      readonly label: string;
+      /** One more line, e.g. "Expose three 6 Bams". */
+      readonly detail: string;
+      /** The tiles the move puts on the table, if any. */
+      readonly tiles: readonly TileKind[];
     };
 
 /** The other three players, from where the player sits. */
@@ -38,6 +50,10 @@ export type DrillTable = {
   readonly exposures: readonly { readonly seat: TableSeat; readonly groups: readonly (readonly TileKind[])[] }[];
   /** Read aloud in place of the tiles, as for a `TileDisplay`. */
   readonly caption: string;
+  /** The discard waiting to be called, and who threw it. */
+  readonly offered?: { readonly tile: TileKind; readonly from: TableSeat };
+  /** The line over the player's rack. Defaults to "Your rack · 14 tiles after the draw". */
+  readonly rackNote?: string;
 };
 
 /** What is laid out on the felt for the player to think about. */

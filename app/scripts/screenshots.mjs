@@ -54,6 +54,11 @@ const STATES = {
     { name: 'move', query: 'step=move', ready: 'scenario-move' },
     { name: 'strategy', query: 'step=strategy', ready: 'scenario-strategy' },
   ],
+  '/scenario/call-the-kong': [
+    { name: 'move', query: 'step=move', ready: 'scenario-move' },
+    { name: 'strategy', query: 'step=strategy', ready: 'scenario-strategy' },
+  ],
+  '/scenario/swap-the-spare': [{ name: 'move', query: 'step=move', ready: 'scenario-move' }],
   '/scenario/count-whats-gone': [
     { name: 'move', query: 'step=move', ready: 'scenario-move' },
     { name: 'strategy', query: 'step=strategy', ready: 'scenario-strategy' },

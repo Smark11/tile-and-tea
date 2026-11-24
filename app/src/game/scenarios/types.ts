@@ -11,6 +11,7 @@
 // coach.
 
 import type { DiscardData } from '../drills/content/discards';
+import type { CallData, SwapData } from '../drills/content/tableMoves';
 import type { SkillId } from '../drills/types';
 import type { TileKind } from '../tiles';
 
@@ -31,10 +32,20 @@ export type ScenarioSetup =
   /** A 13-tile rack and the card lines to choose between. */
   | { readonly kind: 'best-hand'; readonly rack: readonly TileKind[]; readonly handIds: readonly string[] }
   /** Fourteen tiles after a draw, with the discards and exposures in view; the player picks a discard. */
-  | { readonly kind: 'discard'; readonly data: DiscardData };
+  | { readonly kind: 'discard'; readonly data: DiscardData }
+  /** Thirteen tiles and a tile just thrown; the player calls it (for a pung, kong…) or lets it go. */
+  | { readonly kind: 'call'; readonly data: CallData }
+  /** Fourteen tiles after a draw, with Jokers in others' exposures; the player swaps for one or keeps their tiles. */
+  | { readonly kind: 'swap'; readonly data: SwapData };
 
-/** The move the scenario teaches: tiles to pass or throw, or the hand to aim for. */
-export type ScenarioMove = { readonly tiles: readonly TileKind[] } | { readonly handId: string };
+/**
+ * The move the scenario teaches: tiles to pass or throw, the hand to aim for,
+ * or a table move by its choice id ('pass', 'pung', 'kong', 'keep', 'swap-<seat>-<group>').
+ */
+export type ScenarioMove =
+  | { readonly tiles: readonly TileKind[] }
+  | { readonly handId: string }
+  | { readonly action: string };
 
 export type Strategy = {
   /** The principle, as a short memorable rule: "Count what's gone before you count what's close." */
@@ -52,6 +63,8 @@ export type Scenario = {
   /** One line for the list. */
   readonly summary: string;
   readonly stage: ScenarioStage;
+  /** The docs/STRATEGY.md row it teaches ("T4"); a script test checks the row names this scenario. */
+  readonly principle: string;
   /** The skill the decision trains; answers feed its rating like a drill answer. */
   readonly skill: SkillId;
   /** A tile for the scenario's row. */

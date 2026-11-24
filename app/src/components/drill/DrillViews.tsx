@@ -14,6 +14,7 @@ import { Card } from '@/components/Card';
 import { CardLineBody, CardLineView } from '@/components/lesson/CardLineView';
 import { FeedbackPanel, TileDisplayView, TileSpread } from '@/components/lesson/LessonSteps';
 import { Text } from '@/components/Text';
+import { Tile } from '@/components/tile/Tile';
 
 import { TableView } from './TableView';
 import type { AnsweredQuestion, DrillChoice, DrillEvaluation, DrillQuestion, RoundScore, Verdict } from '@/game/drills';
@@ -26,6 +27,8 @@ import { cardInks, fontFamilies, radii, spacing, tileInks, useTheme } from '@/th
 const PRESS_SPRING = { damping: 18, stiffness: 420, mass: 0.6 };
 const PIP_SPRING = { damping: 12, stiffness: 160, mass: 0.7 };
 const PIP_STAGGER_MS = 110;
+/** Tiles on a move slip: big enough to read, small enough to sit beside the words on a phone. */
+const ACTION_TILE = 30;
 
 /** The coach's star, the same one that marks a lesson's revealed answer. */
 const STAR = 'M12 2.5 L14.5 9.5 L21.5 12 L14.5 14.5 L12 21.5 L9.5 14.5 L2.5 12 L9.5 9.5 Z';
@@ -123,6 +126,76 @@ export function LineChoice({ choice, state, onPress, testID }: LineChoiceProps) 
   );
 }
 
+type ActionChoiceProps = {
+  choice: Extract<DrillChoice, { kind: 'action' }>;
+  state: LineChoiceState;
+  onPress: () => void;
+  testID?: string;
+};
+
+/**
+ * A move at the table (call, let it go, swap for a Joker), on the same paper
+ * slip as a card line: its name, one line of detail, and the tiles it puts
+ * on the table. Dips on press, lifts on hover.
+ */
+export function ActionChoice({ choice, state, onPress, testID }: ActionChoiceProps) {
+  const { colors, shadows } = useTheme();
+  const reduceMotion = useReducedMotion();
+  const [hovered, setHovered] = useState(false);
+  const scale = useSharedValue(1);
+  const pressStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.get() }] }));
+  const answered = state === 'best' || state === 'picked' || state === 'passed';
+  const press = (to: number) => {
+    if (!reduceMotion && !answered) scale.set(withSpring(to, PRESS_SPRING));
+  };
+  const edge =
+    state === 'best' || state === 'selected' ? cardInks.suit1 : state === 'picked' ? cardInks.rule : 'transparent';
+  const spoken =
+    state === 'best' ? ', the answer' : state === 'picked' ? ', your pick' : state === 'selected' ? ', picked' : '';
+
+  return (
+    <Animated.View style={[pressStyle, state === 'passed' && styles.passed]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${choice.label}${spoken}. ${choice.detail}`}
+        accessibilityState={{ disabled: answered, selected: state === 'selected' }}
+        disabled={answered}
+        onPress={onPress}
+        onPressIn={() => press(0.97)}
+        onPressOut={() => press(1)}
+        onHoverIn={() => setHovered(true)}
+        onHoverOut={() => setHovered(false)}
+        testID={testID}
+        style={[
+          styles.slip,
+          { borderColor: edge, boxShadow: hovered && !answered ? shadows.medium : shadows.low, outlineColor: colors.focusRing },
+        ]}
+      >
+        <View style={[styles.slipInlay, styles.actionInlay]}>
+          <View style={styles.actionText}>
+            <View style={styles.slipHeader}>
+              <Text style={styles.actionLabel} maxFontSizeMultiplier={1.6}>
+                {choice.label}
+              </Text>
+              {(state === 'best' || state === 'picked') && <Badge state={state} />}
+            </View>
+            <Text style={styles.actionDetail} maxFontSizeMultiplier={1.6}>
+              {choice.detail}
+            </Text>
+          </View>
+          {choice.tiles.length > 0 && (
+            <View style={styles.actionTiles} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+              {choice.tiles.map((kind, i) => (
+                <Tile key={i} kind={kind} width={ACTION_TILE} />
+              ))}
+            </View>
+          )}
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 /** Why some tiles can't be picked (read per tile by screen readers, shown once on the felt). */
 function lockedReason(question: DrillQuestion): string | undefined {
   for (const c of question.choices) if (c.kind === 'tile' && c.locked) return c.locked;
@@ -170,7 +243,8 @@ type DrillQuestionViewProps = {
 
 /** The prompt, what's on the felt, and the choices. */
 export function DrillQuestionView({ question, selected, answer, onTap }: DrillQuestionViewProps) {
-  const lines = question.choices.every((c) => c.kind === 'line');
+  const actions = question.choices.every((c) => c.kind === 'action');
+  const lines = actions || question.choices.every((c) => c.kind === 'line');
   let instruction = 'Tap your answer.';
   if (question.picks > 1) instruction = `Pick ${question.picks}, then Check.`;
   else if (lines) instruction = 'Tap the line these tiles make.';
@@ -222,7 +296,15 @@ export function DrillQuestionView({ question, selected, answer, onTap }: DrillQu
       {lines && (
         <View style={styles.lines} accessibilityRole="list">
           {question.choices.map((choice, i) =>
-            choice.kind === 'line' ? (
+            choice.kind === 'action' ? (
+              <ActionChoice
+                key={i}
+                choice={choice}
+                state={choiceState(i, selected, answer)}
+                onPress={() => onTap(i)}
+                testID={`drill-choice-${i}`}
+              />
+            ) : choice.kind === 'line' ? (
               <LineChoice
                 key={i}
                 choice={choice}
@@ -350,6 +432,11 @@ const styles = StyleSheet.create({
   slipHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, flexWrap: 'wrap' },
   slipLabel: { fontFamily: fontFamilies.sansSemiBold, fontSize: 15, lineHeight: 20, letterSpacing: 0.4, color: cardInks.muted },
   passed: { opacity: 0.5 },
+  actionInlay: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  actionText: { flex: 1, gap: spacing.xxs },
+  actionLabel: { fontFamily: fontFamilies.sansSemiBold, fontSize: 18, lineHeight: 24, color: cardInks.plain },
+  actionDetail: { fontSize: 15, lineHeight: 20, color: cardInks.muted, fontFamily: fontFamilies.sans },
+  actionTiles: { flexDirection: 'row', gap: 2 },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -33,6 +33,30 @@ export function scenarioPath(id: string): `/scenario/${string}` {
   return `/scenario/${id}`;
 }
 
+/** A calendar day in the player's own time zone, "2026-11-24". */
+export function dayKey(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/**
+ * The scenario of the day: the same for everyone on a given local date, and
+ * it changes at midnight. Days walk the list in a shuffled order (a stride
+ * coprime to its length), so consecutive days never repeat and every
+ * scenario comes round once per cycle.
+ */
+export function scenarioOfTheDay(date: Date): Scenario {
+  const n = SCENARIOS.length;
+  const days = Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86_400_000);
+  let stride = 5;
+  while (gcd(stride, n) !== 1) stride++;
+  return SCENARIOS[(((days * stride) % n) + n) % n];
+}
+
+function gcd(a: number, b: number): number {
+  return b === 0 ? a : gcd(b, a % b);
+}
+
 /** The scenarios of one stage, in list order. */
 export function scenariosIn(stage: ScenarioStage): Scenario[] {
   return SCENARIOS.filter((s) => s.stage === stage);

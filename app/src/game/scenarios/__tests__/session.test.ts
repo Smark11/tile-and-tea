@@ -1,4 +1,34 @@
-import { moveIndexes, openScenario, scenarioAnswer, scenarioById, scenarioReducer, SCENARIO_STEPS, startScenario } from '..';
+import {
+  dayKey,
+  moveIndexes,
+  openScenario,
+  scenarioAnswer,
+  scenarioById,
+  scenarioOfTheDay,
+  scenarioReducer,
+  SCENARIO_STEPS,
+  SCENARIOS,
+  startScenario,
+} from '..';
+
+describe('scenarioOfTheDay', () => {
+  const day = (y: number, m: number, d: number, h = 12) => new Date(y, m - 1, d, h);
+
+  it('is the same all day and changes at local midnight', () => {
+    const morning = scenarioOfTheDay(day(2026, 11, 24, 0));
+    expect(scenarioOfTheDay(day(2026, 11, 24, 23))).toBe(morning);
+    expect(scenarioOfTheDay(day(2026, 11, 25, 0))).not.toBe(morning);
+    expect(dayKey(day(2026, 3, 7))).toBe('2026-03-07');
+  });
+
+  it('visits every scenario once per cycle, never twice in a row', () => {
+    const picks = SCENARIOS.map((_, i) => scenarioOfTheDay(day(2026, 1, 1 + i)));
+    expect(new Set(picks).size).toBe(SCENARIOS.length);
+    for (let i = 1; i < 60; i++) {
+      expect(scenarioOfTheDay(day(2026, 1, i))).not.toBe(scenarioOfTheDay(day(2026, 1, i + 1)));
+    }
+  });
+});
 
 const charleston = scenarioById('pass-what-touches-nothing')!;
 const discard = scenarioById('count-whats-gone')!;
