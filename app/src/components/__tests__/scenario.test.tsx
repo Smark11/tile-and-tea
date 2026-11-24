@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 
 import { ScenarioList } from '@/components/scenario/ScenarioList';
 import { ScenarioPlayer } from '@/components/scenario/ScenarioPlayer';
@@ -152,18 +152,39 @@ describe('ScenarioList and the Train tab', () => {
     expect(onOpen).toHaveBeenLastCalledWith(discard);
   });
 
-  it('points the hero at the next unfinished scenario, then at a replay once all are done', async () => {
+  it('points “Your next move” at an unplayed scenario on the weakest skill, then at that skill’s drill', async () => {
+    const track = jest.requireMock('@/analytics').track as jest.Mock;
     useScenarioProgress.getState().complete(charleston.id, 'good');
     expect(nextUnfinished(useScenarioProgress.getState().completed)).toBe(SCENARIOS[1]);
+    useDrillProgress.setState({
+      ratings: { charleston: { rating: 1100, answers: 12, roundStart: 1080 }, discards: { rating: 870, answers: 12, roundStart: 900 } },
+    });
     await render(<TrainTab />);
-    await fireEvent.press(screen.getByRole('button', { name: `Start: ${SCENARIOS[1].title}` }));
-    expect(router().push).toHaveBeenCalledWith(`/scenario/${SCENARIOS[1].id}`);
+    expect(screen.getByTestId('next-move')).toBeTruthy();
+    expect(within(screen.getByTestId('next-move')).getByText('Count what’s gone')).toBeTruthy();
+    expect(screen.getByLabelText('Why: Discards (Finding your feet, 870) is your lowest-rated skill with a scenario left to play.')).toBeTruthy();
+    expect(screen.getByLabelText('Teaches T1: Count what’s gone before you count what’s close.')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Play this scenario' }));
+    expect(router().push).toHaveBeenCalledWith('/scenario/count-whats-gone');
+    expect(track).toHaveBeenCalledWith('next_move_opened', { kind: 'scenario', reason: 'new-scenario', skill: 'discards' });
     await screen.unmount();
+
     for (const s of SCENARIOS) useScenarioProgress.getState().complete(s.id, 'best');
-    expect(nextUnfinished(useScenarioProgress.getState().completed)).toBe(SCENARIOS[0]);
+    useDrillProgress.setState({
+      ratings: {
+        'card-reading': { rating: 1200, answers: 30, roundStart: 1190 },
+        'hand-choice': { rating: 1150, answers: 30, roundStart: 1140 },
+        charleston: { rating: 1100, answers: 30, roundStart: 1080 },
+        discards: { rating: 990, answers: 30, roundStart: 970 },
+      },
+    });
     await render(<TrainTab />);
-    expect(screen.getByRole('button', { name: `Replay: ${SCENARIOS[0].title}` })).toBeTruthy();
     expect(screen.getAllByTestId('scenario-done')).toHaveLength(SCENARIOS.length);
+    expect(within(screen.getByTestId('next-move')).getByText('Drill · 5 questions')).toBeTruthy();
+    expect(screen.getByLabelText('Why: Discards (Finding your feet, 990) is your lowest-rated skill. Every answer here moves it.')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Start a round' }));
+    expect(router().push).toHaveBeenLastCalledWith('/drill/discards');
+    expect(track).toHaveBeenLastCalledWith('next_move_opened', { kind: 'drill', reason: 'weakest-drill', skill: 'discards' });
   });
 });
 

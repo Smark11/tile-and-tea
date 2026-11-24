@@ -213,11 +213,11 @@ describe('DrillScreen', () => {
 });
 
 describe('TrainTab', () => {
-  it('opens a drill from its row, and the first scenario from the hero', async () => {
+  it('opens a drill from its row, and the first scenario from “Your next move”', async () => {
     await render(<TrainTab />);
     await fireEvent.press(screen.getByRole('button', { name: /^Name that hand\./ }));
     expect(router().push).toHaveBeenCalledWith('/drill/name-the-hand');
-    await fireEvent.press(screen.getByRole('button', { name: 'Start: Pass what touches nothing' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Play this scenario' }));
     expect(router().push).toHaveBeenLastCalledWith('/scenario/pass-what-touches-nothing');
     expect(router().push).toHaveBeenCalledTimes(2);
     await fireEvent.press(screen.getByRole('button', { name: /^Best hand\./ }));

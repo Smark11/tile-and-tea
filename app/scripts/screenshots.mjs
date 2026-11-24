@@ -28,6 +28,8 @@ const SAVED_GAME_KEY = 'mjc.game';
 const SAVED_GAME_FIXTURE = JSON.parse(fs.readFileSync(path.join(APP_ROOT, 'scripts', 'fixtures', 'saved-game.json'), 'utf8'));
 /** Saved scenario and skill progress, one save per store key, for the mastered playbook (pinned in playbook.test.ts). */
 const PLAYBOOK_PROGRESS = JSON.parse(fs.readFileSync(path.join(APP_ROOT, 'scripts', 'fixtures', 'playbook-progress.json'), 'utf8'));
+/** Every scenario played, Discards rated lowest with a scenario last finished short of best (pinned in nextMove.test.ts). */
+const NEXT_MOVE_PROGRESS = JSON.parse(fs.readFileSync(path.join(APP_ROOT, 'scripts', 'fixtures', 'next-move-progress.json'), 'utf8'));
 
 /**
  * Screens whose answered state needs its own capture. The route loads with a
@@ -52,6 +54,11 @@ const STATES = {
   // `storage`: seed these saves first. Two principles mastered (C1, C3), others half done.
   '/playbook': [{ name: 'progress', query: '', storage: PLAYBOOK_PROGRESS, ready: 'playbook-mastered' }],
   '/progress': [{ name: 'playbook', query: '', storage: PLAYBOOK_PROGRESS, ready: 'playbook-link-progress' }],
+  // "Your next move" with saved progress: an unplayed scenario on the lowest skill, then a replay once all are played.
+  '/train': [
+    { name: 'next-scenario', query: '', storage: PLAYBOOK_PROGRESS, ready: 'next-move' },
+    { name: 'next-replay', query: '', storage: NEXT_MOVE_PROGRESS, ready: 'next-move' },
+  ],
   // `saved`: seed the fixture save first (scripts/fixtures/saved-game.json, pinned in saved.test.ts).
   '/play': [{ name: 'resume', query: '', saved: true, ready: 'play-resume' }],
   // A scenario opens on its scene; `?step=` opens the move, or the strategy with the taught move made.

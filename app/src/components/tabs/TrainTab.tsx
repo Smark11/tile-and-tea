@@ -1,40 +1,36 @@
 import { router } from 'expo-router';
+import { useMemo } from 'react';
 
+import { track } from '@/analytics';
 import { DrillList } from '@/components/drill/DrillList';
+import { NextMoveHero } from '@/components/playbook/NextMoveHero';
 import { PlaybookLink } from '@/components/playbook/PlaybookLink';
 import { ScenarioList } from '@/components/scenario/ScenarioList';
-import { FeltHero } from '@/components/shell/Preview';
+import { ScenarioOfTheDay } from '@/components/scenario/ScenarioOfTheDay';
 import { TabScreen } from '@/components/shell/TabScreen';
 import { DRILLS, drillPath, type AnyDrill } from '@/game/drills';
-import { ScenarioOfTheDay } from '@/components/scenario/ScenarioOfTheDay';
-import { scenarioOfTheDay, SCENARIOS, scenarioPath, type Scenario } from '@/game/scenarios';
-import type { TileKind } from '@/game/tiles';
-import { nextUnfinished, useScenarioProgress } from '@/state/scenarioProgress';
-
-const HERO_TILES: readonly TileKind[] = [
-  { type: 'suited', suit: 'dot', rank: 3 },
-  { type: 'suited', suit: 'dot', rank: 3 },
-  { type: 'suited', suit: 'dot', rank: 3 },
-  { type: 'joker' },
-];
+import { nextMove, type NextMove } from '@/game/playbook/nextMove';
+import { scenarioOfTheDay, scenarioPath, type Scenario } from '@/game/scenarios';
+import { useDrillProgress } from '@/state/drillProgress';
+import { useScenarioProgress } from '@/state/scenarioProgress';
 
 const openDrill = (drill: AnyDrill) => router.push(drillPath(drill.id));
 const openScenario = (scenario: Scenario) => router.push(scenarioPath(scenario.id));
 
+function openNextMove(move: NextMove) {
+  track('next_move_opened', { kind: move.kind, reason: move.reason, skill: move.standing.skill });
+  if (move.kind === 'scenario') openScenario(move.scenario);
+  else openDrill(move.drill);
+}
+
 export function TrainTab() {
   const completed = useScenarioProgress((s) => s.completed);
-  const next = nextUnfinished(completed);
-  const allDone = SCENARIOS.every((s) => completed[s.id]);
+  const ratings = useDrillProgress((s) => s.ratings);
+  const move = useMemo(() => nextMove({ scenarios: completed, ratings }), [completed, ratings]);
   const today = scenarioOfTheDay(new Date());
   return (
     <TabScreen eyebrow="Train" title="Sharpen your game">
-      <FeltHero
-        tiles={HERO_TILES}
-        tilesLabel="A kong of Three Dots, made with three dots and a joker"
-        title="Learn to win, one moment at a time"
-        body="Each scenario drops you into a real moment at the table, asks what you’d do, then teaches the principle behind the strongest play."
-        action={{ title: allDone ? `Replay: ${next.title}` : `Start: ${next.title}`, onPress: () => openScenario(next) }}
-      />
+      <NextMoveHero move={move} onOpen={openNextMove} />
       <ScenarioOfTheDay scenario={today} record={completed[today.id]} onOpen={openScenario} />
       <ScenarioList completed={completed} onOpen={openScenario} />
       <PlaybookLink from="train" />

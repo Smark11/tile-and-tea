@@ -91,7 +91,7 @@ jest.mock('react-native-reanimated', () => {
     Easing: { inOut: (fn) => fn, out: (fn) => fn, sin: (t) => t, cubic: (t) => t },
     // Layout animations: chainable builders that do nothing, and a config wrapper that renders its children.
     ...Object.fromEntries(
-      ['FadeIn', 'FadeInDown', 'FadeInUp', 'FadeInLeft', 'FadeInRight'].map((name) => {
+      ['FadeIn', 'FadeInDown', 'FadeInUp', 'FadeInLeft', 'FadeInRight', 'ZoomIn'].map((name) => {
         const builder = {};
         for (const step of ['springify', 'damping', 'stiffness', 'duration', 'delay']) builder[step] = () => builder;
         return [name, builder];

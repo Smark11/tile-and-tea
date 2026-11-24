@@ -20,6 +20,9 @@ export type ScenarioVerdict = 'best' | 'good' | 'miss';
 /** Where the playbook was opened from. */
 export type PlaybookSource = 'train' | 'progress' | 'link';
 
+/** Why the Train tab's "Your next move" picked what it did (game/playbook/nextMove). */
+export type NextMoveReason = 'new-scenario' | 'replay-scenario' | 'weakest-drill';
+
 /** The screen a Share button sat on. */
 export type ShareSurface = 'lesson' | 'drill_streak' | 'game' | 'puzzle';
 
@@ -38,6 +41,8 @@ export type AnalyticsEvents = {
   scenario_completed: { scenario_id: string; verdict: ScenarioVerdict };
   /** The playbook screen opened. `from` is the tab whose link opened it, or 'link' for a direct visit. */
   playbook_opened: { from: PlaybookSource };
+  /** The player opened the Train tab's "Your next move". `kind` is what it opened, `skill` the skill it trains. */
+  next_move_opened: { kind: 'scenario' | 'drill'; reason: NextMoveReason; skill: string };
   /** `opponents` is the bot level, e.g. 'beginner'. */
   game_started: { opponents: string };
   /** The player sat back down to their saved game. */
@@ -63,6 +68,7 @@ export const ANALYTICS_EVENT_NAMES = [
   'scenario_started',
   'scenario_completed',
   'playbook_opened',
+  'next_move_opened',
   'game_started',
   'game_resumed',
   'game_finished',

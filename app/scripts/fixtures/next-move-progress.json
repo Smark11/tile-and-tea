@@ -1,0 +1,34 @@
+{
+  "mjc.scenarios": {
+    "state": {
+      "completed": {
+        "pass-what-touches-nothing": { "plays": 2, "verdict": "best", "finishedAt": 1764000000000 },
+        "a-flower-is-not-a-stray": { "plays": 1, "verdict": "best", "finishedAt": 1764000100000 },
+        "closest-beats-richest": { "plays": 1, "verdict": "best", "finishedAt": 1764000200000 },
+        "jokers-want-big-groups": { "plays": 1, "verdict": "best", "finishedAt": 1764000300000 },
+        "dragons-have-suits": { "plays": 1, "verdict": "best", "finishedAt": 1764000400000 },
+        "count-whats-gone": { "plays": 1, "verdict": "best", "finishedAt": 1764000500000 },
+        "two-exposures-tell-a-story": { "plays": 1, "verdict": "best", "finishedAt": 1764000600000 },
+        "keep-doors-open": { "plays": 1, "verdict": "miss", "finishedAt": 1764000700000 },
+        "big-hands-need-real-tiles": { "plays": 1, "verdict": "best", "finishedAt": 1764000800000 },
+        "exposures-count-too": { "plays": 1, "verdict": "good", "finishedAt": 1764000900000 },
+        "stay-concealed": { "plays": 1, "verdict": "best", "finishedAt": 1764001000000 },
+        "call-the-kong": { "plays": 1, "verdict": "best", "finishedAt": 1764001100000 },
+        "take-the-joker": { "plays": 1, "verdict": "best", "finishedAt": 1764001200000 },
+        "swap-the-spare": { "plays": 1, "verdict": "best", "finishedAt": 1764001300000 }
+      }
+    },
+    "version": 1
+  },
+  "mjc.drills": {
+    "state": {
+      "ratings": {
+        "card-reading": { "rating": 1184, "answers": 40, "roundStart": 1170 },
+        "hand-choice": { "rating": 1108, "answers": 31, "roundStart": 1096 },
+        "charleston": { "rating": 1062, "answers": 24, "roundStart": 1031 },
+        "discards": { "rating": 968, "answers": 22, "roundStart": 981 }
+      }
+    },
+    "version": 2
+  }
+}
