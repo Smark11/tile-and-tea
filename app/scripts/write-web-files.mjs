@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { APP_ROOT } from './expo-web.mjs';
-import { resolveSiteUrl, robotsTxt, sitemapXml } from '../src/web/siteMeta.ts';
+import { manifestForBasePath, resolveSiteUrl, robotsTxt, sitemapXml } from '../src/web/siteMeta.ts';
 
 const DIST = path.join(APP_ROOT, 'dist');
 
@@ -36,3 +36,26 @@ if (canonical !== `${siteUrl}/`) {
 fs.writeFileSync(path.join(DIST, 'robots.txt'), robotsTxt(siteUrl));
 fs.writeFileSync(path.join(DIST, 'sitemap.xml'), sitemapXml(siteUrl));
 console.log(`[web-files] ✓ dist/robots.txt and dist/sitemap.xml for ${siteUrl}`);
+
+// Plain static hosts (GitHub Pages) need three more things:
+// 1. `.nojekyll`: Pages runs Jekyll by default, and Jekyll drops folders that
+//    start with an underscore, which is where Expo writes its bundles (_expo/).
+fs.writeFileSync(path.join(DIST, '.nojekyll'), '');
+// 2. `404.html`: with no rewrite rules, Pages serves it for any path that has
+//    no file. Expo's not-found page carries the whole app, so a deep link to a
+//    dynamic route still boots the router and renders the right screen.
+const notFound = path.join(DIST, '+not-found.html');
+if (!fs.existsSync(notFound)) {
+  console.error('[web-files] dist/+not-found.html not found; 404.html not written.');
+  process.exit(1);
+}
+fs.copyFileSync(notFound, path.join(DIST, '404.html'));
+// 3. The manifest's paths get the base path when the site lives in a sub-folder
+//    (EXPO_PUBLIC_BASE_PATH, see app.config.js). The HTML pages already carry it.
+const basePath = (process.env.EXPO_PUBLIC_BASE_PATH ?? '').trim().replace(/\/+$/, '');
+if (basePath) {
+  const manifestFile = path.join(DIST, 'manifest.webmanifest');
+  const manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf8'));
+  fs.writeFileSync(manifestFile, JSON.stringify(manifestForBasePath(manifest, basePath), null, 2) + '\n');
+}
+console.log(`[web-files] ✓ dist/.nojekyll, dist/404.html${basePath ? `, manifest under ${basePath}` : ''}`);

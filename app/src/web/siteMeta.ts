@@ -65,8 +65,7 @@ export const ROUTE_META: Readonly<Record<string, RouteMeta>> = {
   },
   '/welcome': {
     title: 'Welcome',
-    description:
-      'Meet Tile & Tea: a calm, beautiful way to learn American Mah Jongg, one small step at a time.',
+    description: 'Meet Tile & Tea: a calm, beautiful way to learn American Mah Jongg, one small step at a time.',
     indexed: true,
   },
   '/privacy': {
@@ -332,10 +331,7 @@ export function buildPageHead(pathname: string, siteUrl: string): PageHead {
   ];
   // A missing page has no address of its own to advertise.
   if (known) {
-    tags.push(
-      { tag: 'meta', property: 'og:url', content: url },
-      { tag: 'link', rel: 'canonical', href: url },
-    );
+    tags.push({ tag: 'meta', property: 'og:url', content: url }, { tag: 'link', rel: 'canonical', href: url });
   }
   return { title, tags };
 }
@@ -376,4 +372,29 @@ ${disallow}
 
 Sitemap: ${siteUrl}/sitemap.xml
 `;
+}
+
+/**
+ * The PWA manifest in public/ is written for a domain root. When the site is
+ * served from a sub-folder (GitHub Pages: /<repo>/), every path in it needs
+ * that prefix, or the browser looks for the icons at the host's root.
+ */
+export function manifestForBasePath<T extends Record<string, unknown>>(manifest: T, basePath: string): T {
+  const base = basePath.replace(/\/+$/, '');
+  if (!base) return manifest;
+  const prefix = (value: unknown) => (typeof value === 'string' && value.startsWith('/') ? `${base}${value}` : value);
+  const icons = Array.isArray(manifest.icons)
+    ? manifest.icons.map((icon) =>
+        icon && typeof icon === 'object'
+          ? { ...(icon as Record<string, unknown>), src: prefix((icon as Record<string, unknown>).src) }
+          : icon,
+      )
+    : manifest.icons;
+  return {
+    ...manifest,
+    id: prefix(manifest.id),
+    start_url: prefix(manifest.start_url),
+    scope: prefix(manifest.scope),
+    icons,
+  };
 }

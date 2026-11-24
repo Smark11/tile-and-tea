@@ -13,6 +13,12 @@ import { SITE_NAME, THEME_COLOR } from '@/web/siteMeta';
  * `headNodes`/`bodyNodes` carry Expo's favicon, styles, fonts and the JS
  * bundles. Leaving them out exports a page that never boots.
  */
+/**
+ * Where the site is served from, with no trailing slash: '' at a domain root,
+ * '/tile-and-tea' on GitHub Pages. Set at build time (see app.config.js).
+ */
+const BASE_PATH = (process.env.EXPO_PUBLIC_BASE_PATH ?? '').replace(/\/+$/, '');
+
 export default function Root({ children }: PropsWithChildren) {
   const { htmlAttributes, bodyAttributes, headNodes, bodyNodes } = useServerDocumentContext();
   return (
@@ -20,16 +26,13 @@ export default function Root({ children }: PropsWithChildren) {
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover"
-        />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
         <meta name="theme-color" content={THEME_COLOR} />
         <meta name="color-scheme" content="light dark" />
         {/* Install to the home screen: the manifest covers Chrome/Android and
             desktop; iOS Safari reads the apple-* tags and touch icon. */}
-        <link rel="manifest" href="/manifest.webmanifest" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+        <link rel="manifest" href={`${BASE_PATH}/manifest.webmanifest`} />
+        <link rel="apple-touch-icon" sizes="180x180" href={`${BASE_PATH}/icons/apple-touch-icon.png`} />
         <meta name="application-name" content={SITE_NAME} />
         <meta name="apple-mobile-web-app-title" content={SITE_NAME} />
         <meta name="mobile-web-app-capable" content="yes" />

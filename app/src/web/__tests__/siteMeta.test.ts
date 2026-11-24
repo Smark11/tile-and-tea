@@ -5,6 +5,7 @@ import { SCENARIOS, scenarioPath } from '@/game/scenarios';
 import {
   buildPageHead,
   DEFAULT_SITE_URL,
+  manifestForBasePath,
   normalizePath,
   NOT_FOUND_META,
   pageTitle,
@@ -25,9 +26,7 @@ import {
 const SITE = 'https://example.com';
 
 function content(tags: HeadTag[], key: string): string | undefined {
-  const tag = tags.find(
-    (t) => ('name' in t && t.name === key) || ('property' in t && t.property === key),
-  );
+  const tag = tags.find((t) => ('name' in t && t.name === key) || ('property' in t && t.property === key));
   return tag && 'content' in tag ? tag.content : undefined;
 }
 
@@ -202,5 +201,29 @@ describe('lesson pages', () => {
 
   it('keeps lessons out of search while they sit behind the welcome tour', () => {
     for (const route of lessonRoutes) expect(ROUTE_META[route].indexed).toBe(false);
+  });
+});
+
+describe('manifestForBasePath', () => {
+  const manifest = {
+    id: '/',
+    name: 'Tile & Tea',
+    start_url: '/',
+    scope: '/',
+    icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }],
+  };
+
+  it('leaves a root-hosted manifest alone', () => {
+    expect(manifestForBasePath(manifest, '')).toBe(manifest);
+    expect(manifestForBasePath(manifest, '/')).toBe(manifest);
+  });
+
+  it('prefixes every path with the base path, trailing slash or not', () => {
+    const out = manifestForBasePath(manifest, '/tile-and-tea/');
+    expect(out.id).toBe('/tile-and-tea/');
+    expect(out.start_url).toBe('/tile-and-tea/');
+    expect(out.scope).toBe('/tile-and-tea/');
+    expect(out.icons).toEqual([{ src: '/tile-and-tea/icons/icon-192.png', sizes: '192x192' }]);
+    expect(out.name).toBe('Tile & Tea');
   });
 });
