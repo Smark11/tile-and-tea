@@ -19,6 +19,9 @@
 //   its own progress rather than feed them, and with no hand left it just
 //   throws safe.
 //
+// A level is a fixed `BotStyle`. `styleAction` plays any style, which is how
+// the win-rate simulator (`game/sim`) switches one principle off at a time.
+//
 // The noise is seeded from the game and the moment, so a game replays exactly
 // from its seed.
 
@@ -53,7 +56,7 @@ export function isBotLevel(value: unknown): value is BotLevel {
   return typeof value === 'string' && (BOT_LEVELS as readonly string[]).includes(value);
 }
 
-/** How a level plays. Exported for tests and the Play tab's descriptions. */
+/** How a level plays. Exported for tests, the simulator and the Play tab's descriptions. */
 export type BotStyle = {
   /** Counts copies seen on the table as gone. */
   readonly deadTiles: boolean;
@@ -69,6 +72,14 @@ export type BotStyle = {
   readonly swapsJokers: boolean;
   /** Reads opponents' exposures and avoids feeding them. */
   readonly defends: boolean;
+  /** Among equally safe throws, prefers the tile with the most copies already showing (defenders only). */
+  readonly visibleTieBreak: boolean;
+  /**
+   * Null: a hand is worth chasing as much as it is close (count tiles, not points). A number: every
+   * this many points a hand pays over the card's cheapest counts as one tile nearer, so richer hands
+   * pull the bot toward them.
+   */
+  readonly pointsPerTile: number | null;
 };
 
 export const BOT_STYLES: Readonly<Record<BotLevel, BotStyle>> = {
@@ -80,6 +91,8 @@ export const BOT_STYLES: Readonly<Record<BotLevel, BotStyle>> = {
     idleCall: 0.3,
     swapsJokers: false,
     defends: false,
+    visibleTieBreak: false,
+    pointsPerTile: null,
   },
   club: {
     deadTiles: true,
@@ -89,6 +102,8 @@ export const BOT_STYLES: Readonly<Record<BotLevel, BotStyle>> = {
     idleCall: 0,
     swapsJokers: true,
     defends: false,
+    visibleTieBreak: false,
+    pointsPerTile: null,
   },
   shark: {
     deadTiles: true,
@@ -98,6 +113,8 @@ export const BOT_STYLES: Readonly<Record<BotLevel, BotStyle>> = {
     idleCall: 0,
     swapsJokers: true,
     defends: true,
+    visibleTieBreak: true,
+    pointsPerTile: null,
   },
 };
 
@@ -122,23 +139,34 @@ export function seenBy(state: GameState, seat: Seat): TileKind[] {
   return seen;
 }
 
-/** How a holding stands: the closest hand, and how many others sit within a tile of it. */
+/**
+ * How a holding stands: the closest hand, and how many others sit within a tile of it. For a
+ * points-chasing style, `closest` is the best score, where a richer hand counts as nearer.
+ */
 type Standing = { readonly closest: number; readonly backups: number };
+
+/** What a bot judges a holding by: the card, and how it weighs a hand's points against its distance. */
+type Judge = { readonly card: PracticeCard; readonly pointsPerTile: number | null };
 
 function standing(
   rack: readonly Tile[],
   exposures: readonly ExposedGroup[],
   seen: readonly TileKind[],
-  card: PracticeCard,
+  judge: Judge,
 ): Standing {
   const ranked = cardDistances(
     { concealed: rack.map((t) => t.kind), exposures: exposures.map((e) => e.tiles.map((t) => t.kind)) },
-    card,
+    judge.card,
     seen,
   );
-  const closest = ranked[0]?.tilesAway ?? Infinity;
-  if (closest === Infinity) return { closest, backups: 0 };
-  const near = ranked.filter((r) => r.tilesAway !== null && r.tilesAway <= closest + 1).length;
+  const { pointsPerTile } = judge;
+  const cheapest = pointsPerTile !== null ? Math.min(...judge.card.hands.map((h) => h.value)) : 0;
+  const scores = ranked.flatMap((r) =>
+    r.tilesAway === null ? [] : [pointsPerTile !== null ? r.tilesAway - (r.hand.value - cheapest) / pointsPerTile : r.tilesAway],
+  );
+  if (scores.length === 0) return { closest: Infinity, backups: 0 };
+  const closest = Math.min(...scores);
+  const near = scores.filter((score) => score <= closest + 1).length;
   return { closest, backups: near - 1 };
 }
 
@@ -159,7 +187,7 @@ function options(
   rack: readonly Tile[],
   exposures: readonly ExposedGroup[],
   seen: readonly TileKind[],
-  card: PracticeCard,
+  judge: Judge,
   danger: (kind: TileKind) => number = () => 0,
 ): Option[] {
   const out: Option[] = [];
@@ -169,7 +197,7 @@ function options(
       rack.filter((t) => t.id !== tile.id),
       exposures,
       seen,
-      card,
+      judge,
     );
     out.push({ tile, after, danger: danger(tile.kind) });
   }
@@ -192,11 +220,11 @@ function choose(all: readonly Option[], style: BotStyle, rng: Rng, prefer: (a: O
 const byBackups = (a: Option, b: Option) => b.after.backups - a.after.backups;
 
 /** Up to `count` tiles to pass, one at a time, each the one the style can best spare. */
-function tilesToPass(rack: readonly Tile[], count: number, style: BotStyle, rng: Rng, card: PracticeCard): Tile[] {
+function tilesToPass(rack: readonly Tile[], count: number, style: BotStyle, rng: Rng, judge: Judge): Tile[] {
   const passed: Tile[] = [];
   let left = rack;
   while (passed.length < count) {
-    const all = options(left, [], [], card);
+    const all = options(left, [], [], judge);
     if (all.length === 0) break;
     const { tile } = choose(all, style, rng, byBackups);
     passed.push(tile);
@@ -206,12 +234,12 @@ function tilesToPass(rack: readonly Tile[], count: number, style: BotStyle, rng:
 }
 
 /** How many tiles the bot can spare without its closest hand slipping: its courtesy offer. */
-function spareCount(rack: readonly Tile[], card: PracticeCard): number {
-  const now = standing(rack, [], [], card).closest;
+function spareCount(rack: readonly Tile[], judge: Judge): number {
+  const now = standing(rack, [], [], judge).closest;
   let left = rack;
   let spare = 0;
   while (spare < MAX_COURTESY) {
-    const all = options(left, [], [], card);
+    const all = options(left, [], [], judge);
     const cheapest = [...all].sort((a, b) => a.after.closest - b.after.closest)[0];
     if (!cheapest || cheapest.after.closest > now) break;
     left = left.filter((t) => t.id !== cheapest.tile.id);
@@ -268,22 +296,17 @@ function visibleShare(kind: TileKind, seen: readonly TileKind[]): number {
   return seen.filter((k) => sameKind(k, kind)).length / copiesOf(kind);
 }
 
-function sharkDiscard(
-  state: GameState,
-  seat: Seat,
-  seen: readonly TileKind[],
-  card: PracticeCard,
-): Tile {
+function sharkDiscard(state: GameState, seat: Seat, seen: readonly TileKind[], style: BotStyle, judge: Judge): Tile {
   const me = state.players[seat];
-  const threats = threatsTo(state, seat, card);
-  const all = options(me.rack, me.exposures, seen, card, dangerOf(threats));
+  const threats = threatsTo(state, seat, judge.card);
+  const all = options(me.rack, me.exposures, seen, judge, dangerOf(threats));
   const best = Math.min(...all.map((o) => o.after.closest));
   const safest = (pool: readonly Option[]) =>
     [...pool].sort(
       (a, b) =>
         a.danger - b.danger ||
-        b.after.backups - a.after.backups ||
-        visibleShare(b.tile.kind, seen) - visibleShare(a.tile.kind, seen),
+        (style.backups ? b.after.backups - a.after.backups : 0) ||
+        (style.visibleTieBreak ? visibleShare(b.tile.kind, seen) - visibleShare(a.tile.kind, seen) : 0),
     )[0];
   // No hand left: play pure defense.
   if (best === Infinity) return safest(all).tile;
@@ -306,7 +329,7 @@ function bestExposure(
   state: GameState,
   seat: Seat,
   seen: readonly TileKind[],
-  card: PracticeCard,
+  judge: Judge,
 ): { tiles: number[]; after: Standing } | null {
   const { phase } = state;
   if (phase.type !== 'calls' || isJoker(phase.tile)) return null;
@@ -323,7 +346,7 @@ function bestExposure(
     if (used.length < fromRack) continue;
     const exposed: ExposedGroup = { tiles: [phase.tile, ...used], kind: phase.tile.kind, calledFrom: phase.discarder };
     const rest = me.rack.filter((t) => !used.includes(t));
-    const after = standing(rest, [...me.exposures, exposed], seen, card);
+    const after = standing(rest, [...me.exposures, exposed], seen, judge);
     const jokerCount = used.length - real.length;
     if (
       !best ||
@@ -337,9 +360,15 @@ function bestExposure(
 }
 
 /** A Joker swap that costs the bot nothing, or null. */
-function jokerSwap(state: GameState, seat: Seat, seen: readonly TileKind[], card: PracticeCard): GameAction | null {
+function jokerSwap(
+  state: GameState,
+  seat: Seat,
+  seen: readonly TileKind[],
+  style: BotStyle,
+  judge: Judge,
+): GameAction | null {
   const me = state.players[seat];
-  const before = standing(me.rack, me.exposures, seen, card).closest;
+  const before = standing(me.rack, me.exposures, seen, judge).closest;
   for (const owner of state.players) {
     for (let index = 0; index < owner.exposures.length; index++) {
       const group = owner.exposures[index];
@@ -347,11 +376,13 @@ function jokerSwap(state: GameState, seat: Seat, seen: readonly TileKind[], card
       const real = me.rack.find((t) => !isJoker(t) && sameKind(t.kind, group.kind));
       if (!joker || !real) continue;
       const action: GameAction = { type: 'jokerSwap', seat, tile: real.id, owner: owner.seat, exposure: index };
-      const result = step(state, action, card);
+      const result = step(state, action, judge.card);
       if (!result.ok) continue;
       const after = result.state.players[seat];
-      // The real tile goes out of sight into the exposure, so it joins what the bot sees elsewhere.
-      if (standing(after.rack, after.exposures, owner.seat === seat ? seen : [...seen, real.kind], card).closest <= before) {
+      // Recount what's visible after the swap: the Joker left the exposure for the bot's rack and the
+      // real tile took its place. Patching the old list counted that Joker twice.
+      const seenAfter = style.deadTiles ? seenBy(result.state, seat) : [];
+      if (standing(after.rack, after.exposures, seenAfter, judge).closest <= before) {
         return action;
       }
     }
@@ -368,8 +399,18 @@ export function botAction(
   level: BotLevel,
   card: PracticeCard = CURRENT_CARD,
 ): GameAction | null {
+  return styleAction(state, seat, BOT_STYLES[level], card);
+}
+
+/** The move a player of any `style` makes for `seat`, or null if the game isn't waiting on it. */
+export function styleAction(
+  state: GameState,
+  seat: Seat,
+  style: BotStyle,
+  card: PracticeCard = CURRENT_CARD,
+): GameAction | null {
   if (!awaiting(state).includes(seat)) return null;
-  const style = BOT_STYLES[level];
+  const judge: Judge = { card, pointsPerTile: style.pointsPerTile };
   const { phase } = state;
   const me = state.players[seat];
   const seen = style.deadTiles ? seenBy(state, seat) : [];
@@ -378,38 +419,38 @@ export function botAction(
       // A rack holds at most eight Jokers, so three real tiles are always there. Bots never pass blind.
       // Pass ids name the round ('first-right' vs 'second-right'), so every pass draws its own noise.
       const rng = rngFor(state, seat, phase.pass);
-      return { type: 'charlestonPass', seat, tiles: tilesToPass(me.rack, PASS_SIZE, style, rng, card).map((t) => t.id) };
+      return { type: 'charlestonPass', seat, tiles: tilesToPass(me.rack, PASS_SIZE, style, rng, judge).map((t) => t.id) };
     }
     case 'charleston-vote':
       // Bots leave the second Charleston to the human player.
       return { type: 'charlestonVote', seat, continueCharleston: true };
     case 'courtesy-offer':
-      return { type: 'courtesyOffer', seat, count: spareCount(me.rack, card) };
+      return { type: 'courtesyOffer', seat, count: spareCount(me.rack, judge) };
     case 'courtesy-pass': {
       const rng = rngFor(state, seat, 'courtesy');
-      return { type: 'courtesyPass', seat, tiles: tilesToPass(me.rack, phase.counts[seat], style, rng, card).map((t) => t.id) };
+      return { type: 'courtesyPass', seat, tiles: tilesToPass(me.rack, phase.counts[seat], style, rng, judge).map((t) => t.id) };
     }
     case 'turn': {
       if (phase.step === 'draw') return { type: 'draw', seat };
       if (step(state, { type: 'declareMahJongg', seat }, card).ok) return { type: 'declareMahJongg', seat };
       if (style.swapsJokers) {
-        const swap = jokerSwap(state, seat, seen, card);
+        const swap = jokerSwap(state, seat, seen, style, judge);
         if (swap) return swap;
       }
       // A rack of nothing but Jokers (it happens after exposures, since bots keep their Jokers) can only throw one.
       if (me.rack.every(isJoker)) return { type: 'discard', seat, tile: me.rack[0].id };
       const tile = style.defends
-        ? sharkDiscard(state, seat, seen, card)
-        : choose(options(me.rack, me.exposures, seen, card), style, rngFor(state, seat, 'discard'), byBackups).tile;
+        ? sharkDiscard(state, seat, seen, style, judge)
+        : choose(options(me.rack, me.exposures, seen, judge), style, rngFor(state, seat, 'discard'), byBackups).tile;
       return { type: 'discard', seat, tile: tile.id };
     }
     case 'calls': {
       if (step(state, { type: 'call', seat, claim: { type: 'mahJongg' } }, card).ok) {
         return { type: 'call', seat, claim: { type: 'mahJongg' } };
       }
-      const exposure = bestExposure(state, seat, seen, card);
+      const exposure = bestExposure(state, seat, seen, judge);
       if (exposure) {
-        const before = standing(me.rack, me.exposures, seen, card).closest;
+        const before = standing(me.rack, me.exposures, seen, judge).closest;
         const helps = exposure.after.closest < before;
         // A Beginner sometimes calls a group that fits its hand but brings it no closer.
         const idle =

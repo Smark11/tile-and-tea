@@ -224,6 +224,20 @@ describe('Joker swaps', () => {
   it('a Beginner doesn’t notice the Joker', () => {
     expect(botAction(state, 0, 'beginner')).toMatchObject({ type: 'discard' });
   });
+
+  // Regression: judging the swap, the bot used to add the real tile to what it had seen without taking
+  // the Joker back out, so the Joker counted twice (in its rack and still in South's exposure). With
+  // all eight Jokers in play that made a ninth, and the distance engine threw on the impossible table.
+  it.each(['club', 'shark'] as const)('%s counts the swapped Joker once, even with all eight Jokers in play', (level) => {
+    const allJokers = table({
+      racks: { 0: [...of(7, JOKER), ...of(3, N), ...of(3, E), RED] },
+      exposures: [{ seat: 1, kinds: [RED, RED, JOKER], calledFrom: 2 }],
+      phase: turn(0, 'discard'),
+    });
+    const action = botAction(allJokers, 0, level);
+    expect(action).toEqual({ type: 'jokerSwap', seat: 0, tile: idOf(allJokers, 0, RED), owner: 1, exposure: 0 });
+    expect(play(allJokers, action!).players[0].rack.filter(isJoker)).toHaveLength(8);
+  });
 });
 
 describe('Shark defense', () => {
