@@ -13,15 +13,22 @@ Analytics stay silent unless `EXPO_PUBLIC_POSTHOG_KEY` (and optionally
 
 ## GitHub Pages (current hosting)
 
-`.github/workflows/pages.yml` builds and publishes on every push to `main`
-(and on demand from the Actions tab). The site is served at
-`https://<owner>.github.io/<repo>/`, and the workflow derives both variables
-above from the repository name, so renaming the repo is all it takes to move it.
+The site is served at `https://<owner>.github.io/<repo>/`, for us
+https://smark11.github.io/tile-and-tea/. There are two ways to publish it:
 
-One-time setup, already done for `Smark11/tile-and-tea`:
-1. Repository → Settings → Pages → Build and deployment → Source: **GitHub Actions**.
-2. Optional: add `EXPO_PUBLIC_POSTHOG_KEY` as an Actions **secret** and
-   `EXPO_PUBLIC_POSTHOG_HOST` as an Actions **variable** to turn analytics on.
+**From your machine (what we use today):** `./scripts/publish-pages.sh` builds
+with the right variables, pushes `app/dist` to the `gh-pages` branch and asks
+Pages to rebuild. Repository → Settings → Pages must have Source **Deploy from a
+branch**, branch `gh-pages`, folder `/` (set). Run it after every commit you
+want live. The branch holds only build output; never edit it by hand.
+
+**From GitHub Actions:** `.github/workflows/pages.yml` builds and publishes on
+every push to `main` (and on demand from the Actions tab), deriving both
+variables from the repository name. To switch to it: clear the account's
+billing lock (Actions won't start jobs until then), then set Settings → Pages →
+Source to **GitHub Actions**. Optional: add `EXPO_PUBLIC_POSTHOG_KEY` as an
+Actions **secret** and `EXPO_PUBLIC_POSTHOG_HOST` as an Actions **variable** to
+turn analytics on.
 
 What the post-export step (`scripts/write-web-files.mjs`) adds for Pages:
 - `.nojekyll`, because Pages would otherwise drop the `_expo/` bundle folder.
